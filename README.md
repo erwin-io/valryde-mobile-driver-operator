@@ -1,2 +1,2 @@
 # valryde-mobile-driver-operator
-mobile
+valryde-mobile-driver-operator
