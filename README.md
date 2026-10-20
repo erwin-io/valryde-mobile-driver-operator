@@ -58,7 +58,25 @@ Versions are pinned exactly in `package.json` and locked by `package-lock.json`.
 - `docs/integration/TRACKING_INTEGRATION_GATES.md`
 - `docs/testing/SCREEN_AND_USER_FLOW_ACCEPTANCE_CRITERIA.md`
 - `docs/ui-ux/SURFACE_CLASSIFICATION.md`
+- `docs/architecture/BUNDLE_BUDGET.md`
 - `docs/evidence/frontend-foundation/` (screenshot evidence)
+
+## Directive deliverable mapping
+
+The Agent D development directive (§11) lists documents by alternate names. On Tech Lead decision (2026-10-21), the accepted UX contract files keep their names and are not duplicated.
+
+| Directive deliverable | Canonical document |
+|---|---|
+| `docs/ui-ux/DESIGN_SYSTEM.md` | `docs/ui-ux/DESIGN_SYSTEM.md` |
+| `docs/ui-ux/ROLE_NAVIGATION.md` | `docs/ui-ux/ROLE_BASED_NAVIGATION.md` |
+| `docs/ui-ux/SCREEN_INVENTORY.md` | `docs/ui-ux/SCREEN_INVENTORY.md`; scope per surface in `docs/ui-ux/SURFACE_CLASSIFICATION.md` |
+| `docs/ui-ux/OPERATOR_FLOWS.md` | `docs/ui-ux/USER_FLOWS.md`: "Operator …" sections, plus "Session and role resolution" and "Offline, resume and session failure" |
+| `docs/ui-ux/DRIVER_FLOWS.md` | `docs/ui-ux/USER_FLOWS.md`: "Driver …" sections, plus the same shared sections |
+| `docs/ui-ux/COMPONENT_CATALOG.md` | `docs/ui-ux/IONIC_COMPONENT_CATALOG.md` |
+| `docs/ui-ux/VISUAL_ACCEPTANCE.md` | `docs/ui-ux/DESIGN_SYSTEM.md` (principles, semantic states, accessibility), `docs/testing/SCREEN_AND_USER_FLOW_ACCEPTANCE_CRITERIA.md` ("Accessibility and device behavior"), and screenshot evidence in `docs/evidence/` |
+| `docs/integration/API_CONTRACT_MATRIX.md` | `docs/integration/API_CONTRACT_MATRIX.md` |
+| `docs/integration/TRACKING_INTEGRATION_GATES.md` | `docs/integration/TRACKING_INTEGRATION_GATES.md` |
+| `docs/testing/ACCEPTANCE_MATRIX.md` | `docs/testing/SCREEN_AND_USER_FLOW_ACCEPTANCE_CRITERIA.md` |
 
 ## Setup status
 

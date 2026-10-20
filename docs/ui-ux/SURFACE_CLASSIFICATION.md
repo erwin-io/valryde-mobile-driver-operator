@@ -12,9 +12,11 @@
 | **COMP** | Reusable component, a page mode, or a segment inside another page (no standalone route) |
 | **SHEET** | Dialog, modal or bottom sheet opened from a page |
 | **GLOBAL** | Global UI state shared by every page |
-| **FUTURE** | Proposed or blocked; not built until a contract and product approval exist |
+| **FUTURE** | Optional, outside MVP scope; built only with a justified requirement and Tech Lead approval |
 
-**Gate** shows the dependency that must be resolved before *live data* ships: `—` none, `A` Agent A contract review/gap, `B` Agent B tracking/realtime contract, `A+B` both. A gated PAGE still gets its shell, empty and unavailable states now. It never gets invented data.
+**Class** is scope and shape; **Gate** is backend readiness, recorded separately. A gate never changes a surface's MVP status.
+
+**Gate** shows the dependency that must be resolved before *live data* ships: `—` none, `A` Agent A contract review/gap, `B` Agent B tracking/realtime contract, `A+B` both. **`A-blocked`** means the Agent A capability does not exist yet; only the page's unavailable state may be built, and no API is invented. A gated PAGE still gets its shell, empty and unavailable states now. It never gets invented data.
 
 **Foundation** shows what this slice delivers: `Built` (real behavior against verified contracts), `Shell` (layout and explicit unavailable state only), `Placeholder` (tab route with a gate message), or blank (later slice).
 
@@ -22,7 +24,7 @@
 
 | ID | Surface | Class | Gate | Foundation | Note |
 |---|---|---|---|---|---|
-| S01 | Welcome | FUTURE | — | | Sign-in already explains the app; a separate welcome adds a tap without adding information. |
+| S01 | Welcome | FUTURE | — | | Tech Lead: FUTURE / OPTIONAL. Sign-in already serves as the entry. |
 | S02 | Sign in | PAGE | — | Built | Agent A `POST /api/auth/login`; rejects accounts without DRIVER/OPERATOR. Google entry deferred. |
 | S03 | Choose account type / register | PAGE | — | Built | One page with a Driver/Operator segment. |
 | S04 | Driver registration | COMP | — | Built | Driver mode of S03. |
@@ -49,7 +51,7 @@
 | D07 | Group Map/List | PAGE | B | Placeholder | |
 | D08 | Groupmate Detail | PAGE | B | | Groupmate DTO blocked. |
 | D09 | Driver Events | PAGE | B | Placeholder | Events tab; keep or fold into D06 history once Agent B defines events. |
-| D10 | Driver Event Detail | FUTURE | B | | Defer; D09 rows may be sufficient. Decide with the event contract. |
+| D10 | Driver Event Detail | FUTURE | B | | Tech Lead: FUTURE / OPTIONAL pending a justified event-detail requirement; D09 rows may suffice. |
 | D11 | No Assignment | COMP | — | Built | `app-state-panel` empty state on D01. |
 | D12 | Tracker/Route Unavailable | COMP | B | | `app-state-panel` variants keyed by Agent B's error taxonomy. |
 
@@ -85,8 +87,8 @@
 | O26 | GPS Setup Requests | PAGE | A | | |
 | O27 | New GPS Setup Request | PAGE | A | | |
 | O28 | GPS Request Detail | PAGE | A | | |
-| O29 | Route Change Requests | FUTURE | A | | Agent A endpoint absent; not invented. |
-| O30 | New Route Change Request | FUTURE | A | | Agent A endpoint absent; not invented. |
+| O29 | Route Change Requests | PAGE | A-blocked | | Tech Lead: MVP requirement, backend-blocked (Agent A missing capability G7). Gated until workflow, endpoints, RBAC and DTOs are approved. |
+| O30 | New Route Change Request | PAGE | A-blocked | | Tech Lead: MVP requirement, backend-blocked (G7). Describes a requested change only; never edits official geometry. |
 
 ## Global states
 
@@ -107,17 +109,17 @@
 
 | Class | Count |
 |---|---:|
-| PAGE | 37 |
+| PAGE | 39 |
 | COMP | 12 |
 | SHEET | 6 |
 | GLOBAL | 6 |
-| FUTURE | 4 |
+| FUTURE | 2 |
 | **Total** | **65** |
 
-Each inventory ID has exactly one class (verified against `SCREEN_INVENTORY.md`). The MVP has 37 standalone routed pages, not 65.
+Each inventory ID has exactly one class (verified against `SCREEN_INVENTORY.md`). The MVP has **39 standalone routed pages**, not 65. Of these, 2 are `A-blocked` (O29, O30) and the rest are buildable now or gated only for live data.
 
-## Decisions requested from Tech Lead
+## Tech Lead decisions (2026-10-21)
 
-1. S01 (welcome) and D10 (event detail) are FUTURE rather than MVP pages.
-2. O29/O30 (route-change requests) stay FUTURE until Agent A publishes an endpoint.
-3. Directive document names: the directive lists `ROLE_NAVIGATION.md`, `OPERATOR_FLOWS.md`, `DRIVER_FLOWS.md`, `COMPONENT_CATALOG.md`, `VISUAL_ACCEPTANCE.md` and `ACCEPTANCE_MATRIX.md`. The accepted UX contract already covers these as `ROLE_BASED_NAVIGATION.md`, `USER_FLOWS.md` (Driver and Operator sections), `IONIC_COMPONENT_CATALOG.md` and `SCREEN_AND_USER_FLOW_ACCEPTANCE_CRITERIA.md`. They were not duplicated under the new names. Confirm whether to rename or split them.
+1. S01 (welcome) and D10 (event detail) are FUTURE / OPTIONAL.
+2. O29/O30 (route-change requests) are MVP requirements, backend-blocked on Agent A capability G7.
+3. The existing UX contract documents are kept under their current names. See the directive mapping in [`README.md`](../../README.md#directive-deliverable-mapping).

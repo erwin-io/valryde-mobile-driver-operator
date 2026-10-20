@@ -1,17 +1,17 @@
 # VALRYDE — Agent D Status
 
 ## Current snapshot
-- Updated at (ISO 8601, Asia/Manila): 2026-10-21T04:35:00+08:00
+- Updated at (ISO 8601, Asia/Manila): 2026-10-21T05:00:00+08:00
 - Agent / module: D — Driver/Operator Mobile
 - Repository: `valryde-mobile-driver-operator`
 - Branch / HEAD SHA: `feat/frontend-foundation` / `ab49017d4eba52e1a497c29b24e6c2c33f41b4c6` (base `main`); branch pushed, latest SHA in PR #1
 - GitHub issues / PRs: [PR #1](https://github.com/erwin-io/valryde-mobile-driver-operator/pull/1) `feat/frontend-foundation` → `main`, open, awaiting Tech Lead review; no issue assigned.
 - Checklist IDs: 38–55
-- Implementation progress: READY_FOR_REVIEW (`FRONTEND_FOUNDATION_READY`; `UX_CONTRACT_READY` documentation also awaiting detailed review)
-- Tech Lead review decision (if actually issued): Not reviewed
+- Implementation progress: READY_FOR_REVIEW (`AGENT_D_FOUNDATION_CORRECTIONS_READY`)
+- Tech Lead review decision (if actually issued): CHANGES REQUIRED (2026-10-21, limited documentation correction on PR #1); corrections submitted, final review pending
 - Current objective: Deliver the Tech Lead-released reversible frontend foundation stage for review.
 - Last confirmed result: `npm run check` passes on Node 24.15.0 (lint clean, 18/18 unit tests, production build with an initial-bundle budget warning); screenshots captured; 65 surfaces classified.
-- Next concrete action: Tech Lead reviews PR #1 and `docs/ui-ux/SURFACE_CLASSIFICATION.md` decisions, then releases the first feature slice.
+- Next concrete action: Tech Lead final review of PR #1 corrections; no next feature slice until acceptance and `docs/ui-ux/SURFACE_CLASSIFICATION.md` decisions, then releases the first feature slice.
 - Blocked by / decision owner: Feature slices beyond the foundation are gated by Tech Lead review. Several Agent A aggregate/route-request contracts and all public Agent B tracking/realtime contracts remain unavailable.
 - Dependencies / affected agents: Agent A for auth/RBAC/fleet/route/application APIs; Agent B for tracking/latest-state/compliance/realtime; Agent E for Admin-owned route and GPS operations; Agent F for device runbooks; Tech Lead for shared-contract approval and synchronized governance correction.
 
@@ -54,6 +54,8 @@
 | README documentation-path validation | Documentation | PASSED | 2026-10-21 03:05 +08:00 | All 14 referenced documentation files exist. |
 | Official framework reference review | Online official documentation | PASSED | 2026-10-21 03:00 +08:00 | Reviewed Ionic adaptive UI/navigation/theming/security, Angular guard guidance and Capacitor lifecycle documentation. |
 | Final documentation integrity check | Canonical workspace | PASSED | 2026-10-21 03:06 +08:00 | Tracked `git diff --check` exit 0; all Markdown has zero trailing-whitespace/blank-EOF issues; 14 README doc links resolve; policy identical; zero app artifacts. |
+| Bundle investigation (`ng build --stats-json`) | Node 24.15.0 | PASSED (warning retained) | 2026-10-21 05:00 +08:00 | 843.54 kB initial; root cause is the Ionic barrel in eager `app.config.ts`. Subpath-only experiment: 849.72 kB; no-barrel experiment: 516.69 kB. No duplicates, no unused imports. See `docs/architecture/BUNDLE_BUDGET.md`. |
+| Classification recount | Documentation | PASSED | 2026-10-21 05:00 +08:00 | 65 IDs: 39 PAGE (2 A-blocked), 12 COMP, 6 SHEET, 6 GLOBAL, 2 FUTURE. |
 | Typecheck `tsc --noEmit` (app + spec configs) | Node 24.15.0 | PASSED | 2026-10-21 04:26 +08:00 | Both exit 0; templates are typechecked by the strict production build. |
 | PR-submission rerun: `npm run check`, `git diff --check ab49017 HEAD` | Node 24.15.0 | PASSED | 2026-10-21 04:26 +08:00 | 18/18 tests; build passes with the initial bundle budget warning (843.54 kB); diff hygiene exit 0. |
 | `git push` retry / repo permission check | Configured credential `seefixmanagement` | FAILED | 2026-10-21 04:26 +08:00 | 403; `gh api` permissions show `push: false`. Changing auth needs owner approval. |
@@ -83,6 +85,16 @@
 - State: OWNER_VERIFICATION_PENDING; not required for documentation recovery.
 
 ## Activity log (newest first; preserve prior entries)
+### 2026-10-21 05:00 +08:00 — Foundation review corrections (AGENT_D_FOUNDATION_CORRECTIONS_READY)
+- Action / reason: Tech Lead review of PR #1 returned CHANGES REQUIRED (limited documentation correction).
+- Checklist/issue: Agent D 38, 46 (foundation); shells 39, 47. None claimed complete.
+- Files/config/services affected: `docs/ui-ux/SURFACE_CLASSIFICATION.md` (Tech Lead classification: S01/D10 FUTURE/OPTIONAL; O29/O30 MVP PAGE, `A-blocked` on Agent A G7; class separated from backend readiness), `README.md` (directive deliverable mapping; no duplicate docs), new `docs/architecture/BUNDLE_BUDGET.md`; this status file. No source change; budget thresholds unchanged.
+- Observed result (success/failure/rollback): Bundle experiments (subpath imports, barrel removal) were measured and reverted; no code fix applied because removing the barrel requires copying Ionic's provider and loses barrel-only overlay controllers. Options recorded for Tech Lead decision.
+- Validation and evidence: See Latest verification rows at 2026-10-21 05:00 +08:00 and the check rerun recorded in PR #1.
+- Contracts / risks / dependencies: None changed. Still outstanding: real Agent A backend integration (tests mock HTTP), token persistence/secure storage, native Android/iOS build and device testing.
+- Commit/PR link or SHA (if available): https://github.com/erwin-io/valryde-mobile-driver-operator/pull/1
+- Next action / owner gate: Tech Lead final review; bundle option decision before the first substantial UI feature slice.
+
 ### 2026-10-21 04:35 +08:00 — Foundation branch pushed and PR #1 opened
 - Action / reason: Owner switched the active GitHub CLI account to `erwin-io`; resumed the blocked push without changing auth settings.
 - Checklist/issue: Agent D 38, 46 (foundation); shells 39, 47.
