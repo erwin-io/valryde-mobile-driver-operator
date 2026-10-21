@@ -1,17 +1,17 @@
 # VALRYDE — Agent D Status
 
 ## Current snapshot
-- Updated at (ISO 8601, Asia/Manila): 2026-10-21T17:45:00+08:00
+- Updated at (ISO 8601, Asia/Manila): 2026-10-21T19:10:00+08:00
 - Agent / module: D — Driver/Operator Mobile
 - Repository: `valryde-mobile-driver-operator`
 - Branch / HEAD SHA: `feat/account-session` from `main` @ `b8e949b6d007210e3fa3c03ae2c95fc8ca9d6154` (PR #1 merged); latest SHA in PR #2
-- GitHub issues / PRs: PR #1 merged (foundation accepted). Account/session PR on `feat/account-session` (see activity log); no issue assigned.
+- GitHub issues / PRs: PR #1 merged. [PR #2](https://github.com/erwin-io/valryde-mobile-driver-operator/pull/2) `feat/account-session` open; Tech Lead CHANGES REQUIRED (refresh/logout race) addressed, awaiting final review.
 - Checklist IDs: 38–55
-- Implementation progress: READY_FOR_REVIEW (`AGENT_D_AUTHENTICATED_API_INTEGRATION_READY`)
-- Tech Lead review decision (if actually issued): Foundation ACCEPTED (PR #1 merged at `b8e949b`); account/session slice not yet reviewed
+- Implementation progress: READY_FOR_REVIEW (`AGENT_D_PR2_SECURITY_CORRECTION_READY`)
+- Tech Lead review decision (if actually issued): Foundation ACCEPTED (PR #1). PR #2: CHANGES REQUIRED at `4bac2b0` (session resurrection race); correction submitted, final review pending
 - Current objective: Complete Driver/Operator account and session functionality (sign-out/revocation, verification, recovery, secure persistence, real Agent A integration, role switching, expiry).
 - Last confirmed result: Real Agent A dev API + isolated Mailpit: register, verify, verified login (DRIVER and OPERATOR), refresh on expiry, rotation, logout revocation and server RBAC all passed; 56/56 unit tests; build passes with documented budget warning.
-- Next concrete action: Tech Lead reviews the account/session PR. Owner gates: native device verification of secure-storage restore, Gmail SMTP, and cleanup of three disposable dev accounts.
+- Next concrete action: Agent G final review of PR #2. Then: Driver/Operator profile and account-security screens (S11/S12).
 - Blocked by / decision owner: Native device test environment (owner); real Gmail SMTP (owner); dual-role provisioning workflow (Agent A). Agent B tracking/realtime contracts remain unavailable.
 - Dependencies / affected agents: Agent A for auth/RBAC/fleet/route/application APIs; Agent B for tracking/latest-state/compliance/realtime; Agent E for Admin-owned route and GPS operations; Agent F for device runbooks; Tech Lead for shared-contract approval and synchronized governance correction.
 
@@ -54,6 +54,8 @@
 | README documentation-path validation | Documentation | PASSED | 2026-10-21 03:05 +08:00 | All 14 referenced documentation files exist. |
 | Official framework reference review | Online official documentation | PASSED | 2026-10-21 03:00 +08:00 | Reviewed Ionic adaptive UI/navigation/theming/security, Angular guard guidance and Capacitor lifecycle documentation. |
 | Final documentation integrity check | Canonical workspace | PASSED | 2026-10-21 03:06 +08:00 | Tracked `git diff --check` exit 0; all Markdown has zero trailing-whitespace/blank-EOF issues; 14 README doc links resolve; policy identical; zero app artifacts. |
+| PR #2 security correction: `npm run check`, `tsc --noEmit` (app+spec), `git diff --check`, `npm audit --omit=dev` | Node 24.15.0 | PASSED (warning) | 2026-10-21 19:10 +08:00 | Lint clean; 8 files / 71 tests (15 D-RACE), repeated 3× with no flakes; build 911.97 kB initial (budget warning unchanged, thresholds unchanged); 0 runtime vulnerabilities. |
+| D-RACE mutation check (epoch made inert) | Node 24.15.0 | PASSED | 2026-10-21 19:10 +08:00 | 7 race tests fail without the fix (late refresh, late profile, late/superseded sign-in, restore overlap), proving they detect the defect. |
 | Account/session: `npm run check`, `tsc --noEmit` (app+spec), `git diff --check`, `npm audit --omit=dev` | Node 24.15.0 | PASSED (warning) | 2026-10-21 17:45 +08:00 | Lint clean; 8 files / 56 tests; build 911.50 kB initial (budget warning documented); 0 runtime vulnerabilities. |
 | Real Agent A dev API integration | Isolated API `:3001` + isolated Mailpit, app on `:8100`, desktop browser at 375x812 | PASSED | 2026-10-21 17:45 +08:00 | Full table in `docs/testing/ACCOUNT_SESSION_INTEGRATION.md`; screenshots in `docs/evidence/account-session/`. |
 | Valid-link password reset, dual-role switch (real API) | — | NOT_RUN | 2026-10-21 17:45 +08:00 | Reset covered by Agent A's suite and mocked tests; no approved dual-role provisioning workflow. |
@@ -90,6 +92,22 @@
 - State: OWNER_VERIFICATION_PENDING; not required for documentation recovery.
 
 ## Activity log (newest first; preserve prior entries)
+### 2026-10-21 19:10 +08:00 — PR #2 security correction: session-epoch invalidation (AGENT_D_PR2_SECURITY_CORRECTION_READY)
+- Action / reason: Tech Lead finding on PR #2 at `4bac2b0`. `logout()` did not invalidate an in-flight `exchange()`, so a late refresh response could call `accept()`, re-authenticate and save a new refresh token.
+- Checklist/issue: Agent D 38, 46 (partial).
+- Files/config/services affected: `src/app/core/session.service.ts`, `src/app/auth/sign-in.page.ts`, `src/app/core/session.service.spec.ts`, this status file. No dependency, API, config or Agent A changes.
+- Observed result (success/failure/rollback): The root cause was async results applied after `await` without checking that their session still existed. The single-flight promise also survived logout, and a stale rejection could clear a newer session.
+- Correction:
+  - A session epoch is bumped by `clear()` (and so by `logout()`), by `login()` and by `restore()`.
+  - `exchange()`, `login()`, `restore()` and `reloadUser()` discard any result that returns into an older epoch, without touching state or the vault.
+  - The in-flight refresh promise is detached on a new epoch.
+  - A superseded sign-in rejects with `SessionSupersededError`, which the sign-in page ignores silently.
+  - Vault writes remain serialized.
+- Validation and evidence: D-RACE-01…06 (15 tests) and all 71 tests pass; the mutation check shows 7 fail without the fix. Full checks are in Latest verification.
+- Contracts / risks / dependencies: Client-only concurrency guard; request shapes, endpoints and error handling are unchanged, so the existing live Agent A evidence still applies and no live re-run was needed. Operator gates are unchanged: Gmail delivery, physical-device Keychain/Keystore, valid-link reset UI smoke test, dual-role provisioning, and cleanup of three dev accounts.
+- Commit/PR link or SHA (if available): https://github.com/erwin-io/valryde-mobile-driver-operator/pull/2
+- Next action / owner gate: Agent G final review; no self-merge.
+
 ### 2026-10-21 17:45 +08:00 — Account/session slice with real Agent A integration (AGENT_D_AUTHENTICATED_API_INTEGRATION_READY)
 - Action / reason: Tech Lead released the account/session slice after accepting the foundation (PR #1 merged at `b8e949b`), then approved Mailpit-based authenticated integration.
 - Checklist/issue: Agent D 38, 46 (partial); no issue assigned.

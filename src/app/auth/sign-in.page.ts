@@ -20,7 +20,7 @@ import { busOutline, shieldCheckmarkOutline } from 'ionicons/icons';
 import { environment } from '../../environments/environment';
 import { apiErrorCode, apiErrorMessage } from '../core/api-error';
 import { homeFor } from '../core/role.guard';
-import { NoMobileRoleError, SessionService } from '../core/session.service';
+import { NoMobileRoleError, SessionService, SessionSupersededError } from '../core/session.service';
 
 @Component({
   selector: 'app-sign-in-page',
@@ -176,6 +176,8 @@ export class SignInPage {
       await this.session.login(this.form.getRawValue());
       await this.enterWorkspace();
     } catch (error: unknown) {
+      // The attempt was overtaken by a sign-out; nothing to report.
+      if (error instanceof SessionSupersededError) return;
       this.needsVerification.set(apiErrorCode(error) === 'EMAIL_NOT_VERIFIED');
       this.apiError.set(this.describeError(error));
     } finally {

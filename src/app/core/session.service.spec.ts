@@ -1,10 +1,10 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import { TestBed } from '@angular/core/testing';
-import { NEVER, of, throwError } from 'rxjs';
+import { NEVER, of, Subject, throwError } from 'rxjs';
 
 import type { AuthTokens } from './auth.models';
 import { AuthApiService } from './auth-api.service';
-import { NoMobileRoleError, SessionService } from './session.service';
+import { NoMobileRoleError, SessionService, SessionSupersededError } from './session.service';
 import { TokenVaultService } from './token-vault.service';
 
 describe('SessionService', () => {
@@ -251,6 +251,214 @@ describe('SessionService', () => {
       release();
       await out;
       expect(vault.stored).toBeNull();
+    });
+  });
+
+  /**
+   * D-RACE: concurrency between sign-in, refresh, restore, profile reload and sign-out.
+   * Every in-flight call is a manually released Subject, so ordering is forced, never timed.
+   */
+  describe('concurrency (D-RACE)', () => {
+    const deferred = <T,>() => {
+      const subject = new Subject<T>();
+      return {
+        subject,
+        resolve: (value: T) => {
+          subject.next(value);
+          subject.complete();
+        },
+        reject: (error: unknown) => subject.error(error),
+      };
+    };
+    const httpError = (status: number, code?: string) =>
+      new HttpErrorResponse({ status, error: code ? { error: { code } } : null });
+    const assertSignedOut = (session: SessionService) => {
+      expect(session.status()).toBe('anonymous');
+      expect(session.user()).toBeNull();
+      expect(session.activeRole()).toBeNull();
+      expect(vault.stored).toBeNull();
+    };
+
+    it('D-RACE-01 refresh then logout: a late refresh cannot restore the session or store its token', async () => {
+      const session = TestBed.inject(SessionService);
+      await signIn(session);
+      const late = deferred<AuthTokens>();
+      api.refresh.mockReturnValue(late.subject);
+      const refreshing = session.refresh();
+      await session.logout();
+      late.resolve(withRoles(['OPERATOR'], 'refresh-rotated'));
+      expect(await refreshing).toBe('rejected');
+      await settle();
+      assertSignedOut(session);
+      expect(vault.save).not.toHaveBeenCalledWith('refresh-rotated');
+      expect(api.logout).toHaveBeenCalledWith('refresh-1');
+      // Nothing is left to refresh, and no new caller joins the abandoned request.
+      expect(await session.refresh()).toBe('rejected');
+      expect(api.refresh).toHaveBeenCalledTimes(1);
+    });
+
+    it('D-RACE-01 a late profile reload after logout does not bring the user back', async () => {
+      const session = TestBed.inject(SessionService);
+      await signIn(session);
+      const late = deferred<{ user: AuthTokens['user'] }>();
+      api.currentUser.mockReturnValue(late.subject);
+      const reloading = session.reloadUser();
+      await session.logout();
+      late.resolve({ user: tokens.user });
+      await reloading;
+      assertSignedOut(session);
+    });
+
+    it('D-RACE-02 delayed vault writes: sign-out is the final effective state', async () => {
+      const writes: { token: string; release: () => void }[] = [];
+      vault.save.mockImplementation(
+        (token: string) =>
+          new Promise<void>((resolve) => writes.push({ token, release: () => resolve(void (vault.stored = token)) })),
+      );
+      const session = TestBed.inject(SessionService);
+      await signIn(session);
+      api.refresh.mockReturnValue(of(withRoles(['OPERATOR'], 'refresh-2')));
+      await session.refresh();
+      const out = session.logout();
+      // Release the queued saves one at a time, in order; the queue holds the clear until they finish.
+      for (let i = 0; i < 2; i++) {
+        await vi.waitFor(() => expect(writes.length).toBeGreaterThan(i));
+        writes[i].release();
+      }
+      await out;
+      await settle();
+      expect(writes.map((write) => write.token)).toEqual(['refresh-1', 'refresh-2']);
+      expect(vault.clear).toHaveBeenCalled();
+      assertSignedOut(session);
+    });
+
+    it('D-RACE-03 concurrent refresh: one call, then the rotated token is used next', async () => {
+      const session = TestBed.inject(SessionService);
+      await signIn(session);
+      const first = deferred<AuthTokens>();
+      api.refresh.mockReturnValueOnce(first.subject);
+      const callers = [session.refresh(), session.refresh(), session.refresh()];
+      first.resolve(withRoles(['OPERATOR'], 'refresh-2'));
+      expect(await Promise.all(callers)).toEqual(['refreshed', 'refreshed', 'refreshed']);
+      expect(api.refresh).toHaveBeenCalledTimes(1);
+      expect(api.refresh).toHaveBeenLastCalledWith('refresh-1');
+      api.refresh.mockReturnValueOnce(of(withRoles(['OPERATOR'], 'refresh-3')));
+      await session.refresh();
+      expect(api.refresh).toHaveBeenLastCalledWith('refresh-2');
+    });
+
+    it('D-RACE-04 late sign-in after logout does not restore the session', async () => {
+      const late = deferred<AuthTokens>();
+      api.login.mockReturnValue(late.subject);
+      const session = TestBed.inject(SessionService);
+      const signingIn = signIn(session);
+      await session.logout();
+      late.resolve(tokens);
+      await expect(signingIn).rejects.toBeInstanceOf(SessionSupersededError);
+      await settle();
+      assertSignedOut(session);
+      expect(vault.save).not.toHaveBeenCalled();
+    });
+
+    it('D-RACE-04 a superseded sign-in cannot overwrite or clear the newer one', async () => {
+      const slow = deferred<AuthTokens>();
+      api.login.mockReturnValueOnce(slow.subject).mockReturnValueOnce(of(withRoles(['DRIVER'], 'refresh-new')));
+      const session = TestBed.inject(SessionService);
+      const older = signIn(session);
+      await signIn(session);
+      slow.resolve(withRoles(['OPERATOR'], 'refresh-old'));
+      await expect(older).rejects.toBeInstanceOf(SessionSupersededError);
+      await settle();
+      expect(session.status()).toBe('authenticated');
+      expect(session.activeRole()).toBe('DRIVER');
+      expect(vault.stored).toBe('refresh-new');
+    });
+
+    it('D-RACE-05 startup restore cannot overwrite a later logout', async () => {
+      vault.stored = 'stored-refresh';
+      const late = deferred<AuthTokens>();
+      api.refresh.mockReturnValue(late.subject);
+      const session = TestBed.inject(SessionService);
+      const restoring = session.restore();
+      await vi.waitFor(() => expect(api.refresh).toHaveBeenCalledWith('stored-refresh'));
+      await session.logout();
+      late.resolve(withRoles(['OPERATOR'], 'refresh-from-restore'));
+      await restoring;
+      await settle();
+      assertSignedOut(session);
+      expect(vault.save).not.toHaveBeenCalledWith('refresh-from-restore');
+    });
+
+    it('D-RACE-05 startup restore cannot overwrite an explicit sign-in', async () => {
+      vault.stored = 'stored-refresh';
+      const late = deferred<AuthTokens>();
+      api.refresh.mockReturnValue(late.subject);
+      api.login.mockReturnValue(of(withRoles(['DRIVER'], 'refresh-signed-in')));
+      const session = TestBed.inject(SessionService);
+      const restoring = session.restore();
+      await vi.waitFor(() => expect(api.refresh).toHaveBeenCalled());
+      await signIn(session);
+      late.resolve(withRoles(['OPERATOR'], 'refresh-from-restore'));
+      await restoring;
+      await settle();
+      expect(session.status()).toBe('authenticated');
+      expect(session.activeRole()).toBe('DRIVER');
+      expect(session.resumable()).toBe(false);
+      expect(vault.stored).toBe('refresh-signed-in');
+    });
+
+    it('D-RACE-05 a stale restore rejection does not clear an explicit sign-in', async () => {
+      vault.stored = 'stored-refresh';
+      const late = deferred<AuthTokens>();
+      api.refresh.mockReturnValue(late.subject);
+      api.login.mockReturnValue(of(withRoles(['DRIVER'], 'refresh-signed-in')));
+      const session = TestBed.inject(SessionService);
+      const restoring = session.restore();
+      await vi.waitFor(() => expect(api.refresh).toHaveBeenCalled());
+      await signIn(session);
+      late.reject(httpError(401, 'SESSION_REVOKED'));
+      await restoring;
+      await settle();
+      expect(session.status()).toBe('authenticated');
+      expect(session.expired()).toBe(false);
+      expect(vault.stored).toBe('refresh-signed-in');
+    });
+
+    it.each([
+      [0, undefined, 'unavailable'],
+      [503, undefined, 'unavailable'],
+      [400, 'VALIDATION_ERROR', 'rejected'],
+      [401, 'SESSION_REVOKED', 'rejected'],
+      [403, 'FORBIDDEN', 'rejected'],
+    ] as const)('D-RACE-06 refresh failure %s %s is %s', async (status, code, expected) => {
+      const session = TestBed.inject(SessionService);
+      await signIn(session);
+      await settle();
+      api.refresh.mockReturnValue(throwError(() => httpError(status, code)));
+      expect(await session.refresh()).toBe(expected);
+      await settle();
+      if (expected === 'unavailable') {
+        // An outage keeps a valid session and its stored token.
+        expect(session.status()).toBe('authenticated');
+        expect(vault.stored).toBe('refresh-1');
+        expect(session.expired()).toBe(false);
+      } else {
+        assertSignedOut(session);
+        expect(session.expired()).toBe(true);
+      }
+    });
+
+    it('D-RACE-06 sign-out still revokes on the server when reachable, and clears locally when not', async () => {
+      const session = TestBed.inject(SessionService);
+      await signIn(session);
+      await session.logout();
+      expect(api.logout).toHaveBeenCalledWith('refresh-1');
+      api.logout.mockReturnValue(throwError(() => httpError(0)));
+      api.login.mockReturnValue(of(withRoles(['OPERATOR'], 'refresh-9')));
+      await signIn(session);
+      await expect(session.logout()).resolves.toBeUndefined();
+      expect(api.logout).toHaveBeenLastCalledWith('refresh-9');
+      assertSignedOut(session);
     });
   });
 });

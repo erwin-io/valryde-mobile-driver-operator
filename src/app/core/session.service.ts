@@ -22,6 +22,13 @@ export class NoMobileRoleError extends Error {
   }
 }
 
+/** A sign-in finished after the session it belonged to was ended (e.g. by sign-out). */
+export class SessionSupersededError extends Error {
+  constructor() {
+    super('SESSION_SUPERSEDED');
+  }
+}
+
 const isMobileRole = (role: string): role is MobileRole => role === 'DRIVER' || role === 'OPERATOR';
 
 @Injectable({ providedIn: 'root' })
@@ -35,6 +42,9 @@ export class SessionService {
   private readonly expiredState = signal(false);
   private readonly resumableState = signal(false);
   private refreshing: Promise<RefreshResult> | null = null;
+  // Session generation: bumped whenever a session ends or a new one starts. Any async result that
+  // returns into an older epoch is discarded, so a late login/refresh/profile can never resurrect a session.
+  private epoch = 0;
   // Serializes vault writes so a late save can never resurrect a token after sign-out.
   private vaultQueue: Promise<unknown> = Promise.resolve();
 
@@ -48,15 +58,18 @@ export class SessionService {
   readonly availableRoles = computed(() => (this.userState()?.roles ?? []).filter(isMobileRole));
 
   async login(request: LoginRequest): Promise<AuthTokens> {
+    const epoch = this.begin();
     this.statusState.set('authenticating');
     try {
       const tokens = await firstValueFrom(this.api.login(request));
+      if (epoch !== this.epoch) throw new SessionSupersededError();
       if (!tokens.user.roles.some(isMobileRole)) throw new NoMobileRoleError();
       this.expiredState.set(false);
       this.accept(tokens);
       return tokens;
     } catch (error: unknown) {
-      this.clear();
+      // A superseded attempt must not clear whatever session replaced it.
+      if (epoch === this.epoch) this.clear();
       throw error;
     }
   }
@@ -69,14 +82,17 @@ export class SessionService {
 
   /** Startup: resume a session from the OS-backed vault, if any. */
   async restore(): Promise<void> {
+    const epoch = this.begin();
     this.statusState.set('restoring');
     await this.vaultQueue;
-    const stored = await this.vault.load();
+    const stored = epoch === this.epoch ? await this.vault.load() : null;
+    if (epoch !== this.epoch) return;
     if (!stored) {
       this.statusState.set('anonymous');
       return;
     }
     const result = await this.exchange(stored, RESTORE_TIMEOUT_MS);
+    if (epoch !== this.epoch) return;
     this.resumableState.set(result === 'unavailable');
     if (result === 'unavailable') this.statusState.set('anonymous');
   }
@@ -85,13 +101,20 @@ export class SessionService {
   refresh(): Promise<RefreshResult> {
     const refreshToken = this.tokenStore.refreshToken();
     if (!refreshToken) return Promise.resolve('rejected');
-    this.refreshing ??= this.exchange(refreshToken).finally(() => (this.refreshing = null));
+    if (!this.refreshing) {
+      const pending: Promise<RefreshResult> = this.exchange(refreshToken).finally(() => {
+        if (this.refreshing === pending) this.refreshing = null;
+      });
+      this.refreshing = pending;
+    }
     return this.refreshing;
   }
 
   /** Re-reads the profile from the server; a role the server no longer grants stops being active. */
   async reloadUser(): Promise<void> {
+    const epoch = this.epoch;
     const { user } = await firstValueFrom(this.api.currentUser());
+    if (epoch !== this.epoch) return;
     this.userState.set(user);
     const active = this.activeRoleState();
     if (active && !user.roles.includes(active)) this.activeRoleState.set(null);
@@ -114,6 +137,7 @@ export class SessionService {
   }
 
   clear(): void {
+    this.begin();
     this.tokenStore.clear();
     this.userState.set(null);
     this.activeRoleState.set(null);
@@ -122,9 +146,12 @@ export class SessionService {
   }
 
   private async exchange(refreshToken: string, ms?: number): Promise<RefreshResult> {
+    const epoch = this.epoch;
     try {
       const request = this.api.refresh(refreshToken);
       const tokens = await firstValueFrom(ms ? request.pipe(timeout(ms)) : request);
+      // The session this refresh belonged to is gone; its result must not touch the newer state.
+      if (epoch !== this.epoch) return 'rejected';
       if (!tokens.user.roles.some(isMobileRole)) {
         this.clear();
         return 'rejected';
@@ -132,11 +159,18 @@ export class SessionService {
       this.accept(tokens);
       return 'refreshed';
     } catch (error: unknown) {
+      if (epoch !== this.epoch) return 'rejected';
       if (!isClientError(error)) return 'unavailable';
       this.clear();
       this.expiredState.set(true);
       return 'rejected';
     }
+  }
+
+  /** Starts a new session generation and detaches any in-flight refresh from it. */
+  private begin(): number {
+    this.refreshing = null;
+    return ++this.epoch;
   }
 
   private persist(refreshToken: string | null): void {
