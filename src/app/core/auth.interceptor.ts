@@ -27,9 +27,10 @@ export const authInterceptor: HttpInterceptorFn = (request, next) => {
         tokenStore.refreshToken() !== null;
       if (!retryable) return throwError(() => error);
       return from(session.refresh()).pipe(
-        switchMap((refreshed) => {
-          if (refreshed) return next(withToken(request, tokenStore.accessToken()));
-          void router.navigate(['/auth/sign-in']);
+        switchMap((result) => {
+          if (result === 'refreshed') return next(withToken(request, tokenStore.accessToken()));
+          // An outage keeps the session; only a server rejection ends it.
+          if (result === 'rejected') void router.navigate(['/auth/sign-in']);
           return throwError(() => error);
         }),
       );

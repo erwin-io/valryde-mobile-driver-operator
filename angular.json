@@ -22,7 +22,9 @@
                 "input": "public"
               }
             ],
-            "styles": ["src/global.scss"]
+            "styles": [
+              "src/global.scss"
+            ]
           },
           "configurations": {
             "production": {
@@ -61,7 +63,8 @@
               "buildTarget": "valryde-operator:build:production"
             },
             "development": {
-              "buildTarget": "valryde-operator:build:development"
+              "buildTarget": "valryde-operator:build:development",
+              "proxyConfig": "proxy.conf.mjs"
             }
           },
           "defaultConfiguration": "development"

@@ -50,4 +50,18 @@ describe('AuthApiService', () => {
     expect(pending.request.body).toEqual({ refreshToken: 'opaque-refresh-token' });
     pending.flush({});
   });
+
+  it.each([
+    ['verifyEmail', ['verify-token'], '/api/auth/verify-email', { token: 'verify-token' }],
+    ['resendVerification', ['d@example.com'], '/api/auth/resend-verification', { email: 'd@example.com' }],
+    ['forgotPassword', ['d@example.com'], '/api/auth/forgot-password', { email: 'd@example.com' }],
+    ['resetPassword', ['reset-token', 'new-password-123'], '/api/auth/reset-password', { token: 'reset-token', password: 'new-password-123' }],
+    ['logout', ['opaque-refresh-token'], '/api/auth/logout', { refreshToken: 'opaque-refresh-token' }],
+  ] as const)('%s posts the Agent A payload', (method, args, url, body) => {
+    (service[method] as (...a: string[]) => ReturnType<AuthApiService['logout']>)(...args).subscribe();
+    const pending = http.expectOne(url);
+    expect(pending.request.method).toBe('POST');
+    expect(pending.request.body).toEqual(body);
+    pending.flush(null);
+  });
 });

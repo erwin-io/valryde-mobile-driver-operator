@@ -33,4 +33,13 @@ Splitting only works once nothing eager imports the barrel. Ionic 9 exports `pro
 2. **Upstream.** Ask Ionic for a providers/controllers subpath export, then apply subpath imports with no copied code.
 3. **Zoneless change detection.** This would drop `zone.js` (about 43 kB). It needs verification against Ionic 9 and is a behavior change, not a bundle fix.
 
+## Update — account/session slice (2026-10-21)
+
+Initial bundle: **911.50 kB** raw / ~204 kB transfer (+68 kB). Measured contributors:
+- `@ionic/core` +57 kB: the `ion-alert` overlay used by the Account page, made eager by the barrel cause above.
+- `@capacitor/core` +10 kB: the native bridge needed by the secure token vault.
+- `@aparajita/capacitor-secure-storage` +1 kB.
+
+Per Tech Lead decision, no Ionic internals were copied and thresholds are unchanged; the warning stays documented.
+
 Recommendation: keep the documented warning for the foundation. Decide on option 1 or 2 before the first feature slice that adds substantial UI.

@@ -1,4 +1,3 @@
-import { HttpErrorResponse } from '@angular/common/http';
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
@@ -19,8 +18,9 @@ import { addIcons } from 'ionicons';
 import { busOutline, shieldCheckmarkOutline } from 'ionicons/icons';
 
 import { environment } from '../../environments/environment';
-import type { ApiErrorEnvelope } from '../core/auth.models';
-import { NoMobileRoleError, SessionService } from '../core/session.service';
+import { apiErrorCode, apiErrorMessage } from '../core/api-error';
+import { homeFor } from '../core/role.guard';
+import { NoMobileRoleError, SessionService, SessionSupersededError } from '../core/session.service';
 
 @Component({
   selector: 'app-sign-in-page',
@@ -81,16 +81,28 @@ import { NoMobileRoleError, SessionService } from '../core/session.service';
             </ion-item>
           </ion-list>
 
+          @if (session.resumable() && !errorMessage()) {
+            <ion-note class="form-error" color="warning" role="status">
+              VALRYDE couldn't be reached to resume your session.
+              <ion-button fill="clear" size="small" [disabled]="submitting()" (click)="resume()">Try again</ion-button>
+            </ion-note>
+          }
           @if (session.expired() && !errorMessage()) {
             <ion-note class="form-error" color="warning" role="status">Your session ended. Sign in again to continue.</ion-note>
           }
           @if (errorMessage()) {
             <ion-note class="form-error" color="danger" role="alert">{{ errorMessage() }}</ion-note>
+            @if (needsVerification()) {
+              <ion-button fill="outline" size="small" routerLink="/auth/verify-email" [state]="{ email: form.controls.email.value }">
+                Verify email
+              </ion-button>
+            }
           }
 
           <ion-button type="submit" expand="block" size="large" [disabled]="submitting()">
             @if (submitting()) { <ion-spinner name="crescent" /> } @else { Sign in }
           </ion-button>
+          <ion-button type="button" fill="clear" expand="block" routerLink="/auth/forgot-password">Forgot password?</ion-button>
           <ion-button type="button" fill="clear" expand="block" routerLink="/auth/register">
             Create a Driver or Operator account
           </ion-button>
@@ -138,6 +150,7 @@ export class SignInPage {
   protected readonly submitting = signal(false);
   protected readonly apiError = signal<string | null>(null);
   protected readonly errorMessage = computed(() => this.apiError());
+  protected readonly needsVerification = signal(false);
   protected readonly previewEnabled = environment.enableFoundationPreview;
   protected readonly form = new FormGroup({
     email: new FormControl('', { nonNullable: true, validators: [Validators.required, Validators.email] }),
@@ -158,30 +171,39 @@ export class SignInPage {
     }
     this.submitting.set(true);
     this.apiError.set(null);
+    this.needsVerification.set(false);
     try {
       await this.session.login(this.form.getRawValue());
-      const roles = this.session.availableRoles();
-      if (roles.length === 1) {
-        await this.router.navigate([roles[0] === 'DRIVER' ? '/driver/home' : '/operator/dashboard']);
-      } else {
-        await this.router.navigate(['/role']);
-      }
+      await this.enterWorkspace();
     } catch (error: unknown) {
+      // The attempt was overtaken by a sign-out; nothing to report.
+      if (error instanceof SessionSupersededError) return;
+      this.needsVerification.set(apiErrorCode(error) === 'EMAIL_NOT_VERIFIED');
       this.apiError.set(this.describeError(error));
     } finally {
       this.submitting.set(false);
     }
   }
 
+  protected async resume(): Promise<void> {
+    this.submitting.set(true);
+    try {
+      await this.session.restore();
+      if (this.session.status() === 'authenticated') await this.enterWorkspace();
+    } finally {
+      this.submitting.set(false);
+    }
+  }
+
+  private async enterWorkspace(): Promise<void> {
+    const role = this.session.activeRole();
+    await this.router.navigate([role ? homeFor(role) : '/role'], { replaceUrl: true });
+  }
+
   private describeError(error: unknown): string {
     if (error instanceof NoMobileRoleError) {
       return 'This account does not have Driver or Operator access. Use the VALRYDE app for your role.';
     }
-    // Only Agent A's declared client-error statuses mean the details were wrong; anything else is an outage.
-    if (error instanceof HttpErrorResponse && [400, 401, 403, 409].includes(error.status)) {
-      const body = error.error as Partial<ApiErrorEnvelope> | null;
-      return body?.error?.message ?? 'Sign in failed. Check your details and try again.';
-    }
-    return 'Sign in is unavailable. Check your connection and try again.';
+    return apiErrorMessage(error, 'Sign in failed. Check your details and try again.');
   }
 }

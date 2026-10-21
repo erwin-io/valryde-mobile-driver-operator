@@ -42,7 +42,7 @@ describe('authInterceptor', () => {
   it('refreshes once on 401 and retries with the new token', async () => {
     session.refresh.mockImplementation(async () => {
       tokens.access = 'new-access';
-      return true;
+      return 'refreshed';
     });
     const result = new Promise((resolve) => http.get('/api/auth/me').subscribe(resolve));
     backend.expectOne('/api/auth/me').flush(null, unauthorized);
@@ -55,11 +55,19 @@ describe('authInterceptor', () => {
   });
 
   it('returns to sign-in when the session cannot be refreshed', async () => {
-    session.refresh.mockResolvedValue(false);
+    session.refresh.mockResolvedValue('rejected');
     const failed = new Promise((resolve) => http.get('/api/jeepneys').subscribe({ error: resolve }));
     backend.expectOne('/api/jeepneys').flush(null, unauthorized);
     await failed;
     expect(router.navigate).toHaveBeenCalledWith(['/auth/sign-in']);
+  });
+
+  it('keeps the session and surfaces the error when refresh is unavailable', async () => {
+    session.refresh.mockResolvedValue('unavailable');
+    const failed = new Promise((resolve) => http.get('/api/jeepneys').subscribe({ error: resolve }));
+    backend.expectOne('/api/jeepneys').flush(null, unauthorized);
+    await failed;
+    expect(router.navigate).not.toHaveBeenCalled();
   });
 
   it('does not refresh on 401 from public auth endpoints', async () => {

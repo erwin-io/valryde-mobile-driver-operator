@@ -29,4 +29,20 @@ export class AuthApiService {
   logout(refreshToken: string): Observable<null> {
     return this.http.post<null>(`${this.baseUrl}/logout`, { refreshToken });
   }
+
+  verifyEmail(token: string): Observable<{ user: ValrydeUser }> {
+    return this.http.post<{ user: ValrydeUser }>(`${this.baseUrl}/verify-email`, { token });
+  }
+
+  resendVerification(email: string): Observable<{ message: string }> {
+    return this.http.post<{ message: string }>(`${this.baseUrl}/resend-verification`, { email });
+  }
+
+  forgotPassword(email: string): Observable<{ message: string }> {
+    return this.http.post<{ message: string }>(`${this.baseUrl}/forgot-password`, { email });
+  }
+
+  resetPassword(token: string, password: string): Observable<null> {
+    return this.http.post<null>(`${this.baseUrl}/reset-password`, { token, password });
+  }
 }

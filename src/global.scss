@@ -41,6 +41,30 @@ body {
   line-height: 1.45;
 }
 
+/* Single-column form card used by the account-recovery screens. */
+.form-card {
+  background: var(--vr-color-surface);
+  border: 1px solid var(--vr-color-border);
+  border-radius: var(--vr-radius-md);
+  display: grid;
+  gap: var(--vr-space-3);
+  padding: var(--vr-space-4);
+
+  ion-list,
+  ion-item {
+    --background: transparent;
+  }
+
+  ion-item {
+    --inner-padding-end: 0;
+    --padding-start: 0;
+  }
+}
+
+.page-stack.narrow {
+  max-width: 30rem;
+}
+
 .foundation-notice {
   align-items: center;
   background: var(--vr-color-info-soft);
