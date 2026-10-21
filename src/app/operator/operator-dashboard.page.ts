@@ -1,14 +1,18 @@
-import { ChangeDetectionStrategy, Component, input } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, input, type OnInit, signal } from '@angular/core';
+import { RouterLink } from '@angular/router';
 import { IonButton, IonContent, IonHeader, IonIcon, IonItem, IonLabel, IonList, IonTitle, IonToolbar } from '@ionic/angular';
 import { addIcons } from 'ionicons';
 import { busOutline, chevronForwardOutline, peopleOutline, trailSignOutline, warningOutline } from 'ionicons/icons';
+import { firstValueFrom } from 'rxjs';
+
+import { FleetApiService } from '../core/fleet-api.service';
 
 import { StatePanelComponent } from '../shared/state-panel.component';
 
 @Component({
   selector: 'app-operator-dashboard-page',
   standalone: true,
-  imports: [IonButton, IonContent, IonHeader, IonIcon, IonItem, IonLabel, IonList, IonTitle, IonToolbar, StatePanelComponent],
+  imports: [RouterLink, IonButton, IonContent, IonHeader, IonIcon, IonItem, IonLabel, IonList, IonTitle, IonToolbar, StatePanelComponent],
   template: `
     <ion-header class="ion-no-border"><ion-toolbar><ion-title>Fleet Dashboard</ion-title></ion-toolbar></ion-header>
     <ion-content class="page-content">
@@ -18,34 +22,38 @@ import { StatePanelComponent } from '../shared/state-panel.component';
       <main class="page-stack">
         <section class="dashboard-intro">
           <div><p class="eyebrow">YOUR FLEET</p><h1>Good operations start with clear status</h1></div>
-          <ion-button size="small" disabled="true">Add jeepney</ion-button>
+          <ion-button size="small" routerLink="/operator/fleet/jeepneys/new" [disabled]="foundationPreview()">Add jeepney</ion-button>
         </section>
 
         <section aria-labelledby="fleet-overview-heading">
           <h2 id="fleet-overview-heading" class="section-heading">Fleet overview</h2>
           <div class="metric-grid">
-            <article><span>Jeepneys</span><strong>—</strong><small>API pending</small></article>
-            <article><span>Drivers</span><strong>—</strong><small>API pending</small></article>
+            <article><span>Jeepneys</span><strong>{{ counts()?.jeepneys ?? '—' }}</strong><small>{{ counts() ? counts()!.active + ' active' : 'Not loaded' }}</small></article>
+            <article><span>Awaiting approval</span><strong>{{ counts()?.pending ?? '—' }}</strong><small>Reviewed by VALRYDE Admin</small></article>
+            <article><span>Fleet groups</span><strong>{{ counts()?.groups ?? '—' }}</strong><small>{{ counts() ? 'Your groups' : 'Not loaded' }}</small></article>
+            <article><span>Drivers</span><strong>—</strong><small>Driver list not yet available</small></article>
             <article><span>Online</span><strong>—</strong><small>Tracking gated</small></article>
             <article><span>Off route</span><strong>—</strong><small>Tracking gated</small></article>
           </div>
         </section>
 
-        <app-state-panel
-          panelId="operator-empty-fleet"
-          icon="bus-outline"
-          title="Fleet summary unavailable"
-          message="Counts will load from server-scoped fleet and tracking contracts. No values are inferred locally."
-        />
+        @if (!counts()) {
+          <app-state-panel
+            panelId="operator-empty-fleet"
+            icon="bus-outline"
+            title="Fleet summary unavailable"
+            [message]="foundationPreview() ? 'Preview only: no backend data is loaded.' : 'Your fleet counts could not be loaded. Open Fleet to try again.'"
+          />
+        }
+        <p class="supporting-text">Online, moving and off-route counts appear once GPS tracking is connected.</p>
 
         <section aria-labelledby="management-heading">
           <h2 id="management-heading" class="section-heading">Manage operations</h2>
           <ion-list inset="true">
             @for (item of managementItems; track item.title) {
-              <ion-item [button]="true" [detail]="false" [disabled]="true">
+              <ion-item [routerLink]="item.link" [detail]="true" [disabled]="foundationPreview() || !item.link">
                 <ion-icon [name]="item.icon" slot="start" aria-hidden="true" />
                 <ion-label><h3>{{ item.title }}</h3><p>{{ item.subtitle }}</p></ion-label>
-                <ion-icon name="chevron-forward-outline" slot="end" aria-hidden="true" />
               </ion-item>
             }
           </ion-list>
@@ -67,13 +75,40 @@ import { StatePanelComponent } from '../shared/state-panel.component';
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class OperatorDashboardPage {
+export class OperatorDashboardPage implements OnInit {
+  private readonly api = inject(FleetApiService);
+  private entered = false;
   readonly foundationPreview = input(false);
+  protected readonly counts = signal<{ jeepneys: number; active: number; pending: number; groups: number } | null>(null);
   protected readonly managementItems = [
-    { title: 'Jeepneys', subtitle: 'Vehicles, applications and GPS state', icon: 'bus-outline' },
-    { title: 'Drivers', subtitle: 'Associations and assignments', icon: 'people-outline' },
-    { title: 'Transits', subtitle: 'Approved routes and effective assignments', icon: 'trail-sign-outline' },
+    { title: 'Jeepneys', subtitle: 'Vehicles, applications and routes', icon: 'bus-outline', link: '/operator/fleet/jeepneys' },
+    { title: 'Fleet groups', subtitle: 'Organize jeepneys and drivers', icon: 'people-outline', link: '/operator/fleet/groups' },
+    { title: 'Drivers', subtitle: 'Available when VALRYDE can list your drivers', icon: 'people-outline', link: null },
   ] as const;
+
+  ngOnInit(): void {
+    if (!this.foundationPreview()) void this.load();
+  }
+
+  ionViewWillEnter(): void {
+    if (this.entered && !this.foundationPreview()) void this.load();
+    this.entered = true;
+  }
+
+  /** Plain counts over the Operator-scoped lists; no tracking state is inferred. */
+  protected async load(): Promise<void> {
+    try {
+      const [jeepneys, groups] = await Promise.all([firstValueFrom(this.api.listJeepneys()), firstValueFrom(this.api.listGroups())]);
+      this.counts.set({
+        jeepneys: jeepneys.length,
+        active: jeepneys.filter((j) => j.status === 'ACTIVE').length,
+        pending: jeepneys.filter((j) => j.status === 'PENDING_APPROVAL').length,
+        groups: groups.length,
+      });
+    } catch {
+      this.counts.set(null);
+    }
+  }
 
   constructor() {
     addIcons({ busOutline, chevronForwardOutline, peopleOutline, trailSignOutline, warningOutline });
