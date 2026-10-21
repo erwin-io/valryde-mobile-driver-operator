@@ -20,10 +20,13 @@ import { firstValueFrom } from 'rxjs';
 
 import { apiErrorCode, apiErrorMessage } from '../core/api-error';
 import { FleetApiService } from '../core/fleet-api.service';
-import type { EffectiveRouteDirection, Jeepney, VehicleApplication } from '../core/fleet.models';
+import type { EffectiveRouteDirection, GpsSetupRequest, Jeepney, VehicleApplication } from '../core/fleet.models';
 import { statusLabel, statusTone } from '../shared/fleet-status';
 import { StatePanelComponent } from '../shared/state-panel.component';
 import { StatusPillComponent } from '../shared/status-pill.component';
+
+const newest = <T extends { createdAt: string }>(items: T[]): T | null =>
+  [...items].sort((a, b) => b.createdAt.localeCompare(a.createdAt))[0] ?? null;
 
 type RouteState = { kind: 'loading' } | { kind: 'none' } | { kind: 'conflict' } | { kind: 'error'; message: string } | { kind: 'route'; route: EffectiveRouteDirection };
 
@@ -134,6 +137,40 @@ type RouteState = { kind: 'loading' } | { kind: 'none' } | { kind: 'conflict' } 
             }
           </section>
 
+          <section aria-labelledby="gps-heading">
+            <h2 id="gps-heading" class="section-heading">GPS installation</h2>
+            @if (gps(); as req) {
+              <ion-list inset="true">
+                <ion-item>
+                  <ion-label><p>Requested {{ req.createdAt.slice(0, 10) }}</p><h2>Installation request</h2></ion-label>
+                  <app-status-pill slot="end" [tone]="tone(req.status)">{{ label(req.status) }}</app-status-pill>
+                </ion-item>
+                @if (req.scheduledAt) {
+                  <ion-item><ion-label><p>Scheduled</p><h2>{{ req.scheduledAt.slice(0, 16).replace('T', ' ') }}</h2></ion-label></ion-item>
+                }
+                @if (req.installedAt) {
+                  <ion-item><ion-label><p>Installer reported</p><h2>{{ req.installedAt.slice(0, 10) }}</h2></ion-label></ion-item>
+                }
+                <ion-item>
+                  <ion-label><p>Device verification</p></ion-label>
+                  <app-status-pill slot="end" [tone]="tone(req.verificationStatus)">{{ label(req.verificationStatus) }}</app-status-pill>
+                </ion-item>
+                @if (req.rejectedReason) {
+                  <ion-item><ion-label class="ion-text-wrap"><p>Reason</p><h2>{{ req.rejectedReason }}</h2></ion-label></ion-item>
+                }
+              </ion-list>
+              <p class="supporting-text">Tracking starts only after VALRYDE verifies the installed device.</p>
+            } @else if (application()?.status === 'APPROVED') {
+              <p class="supporting-text">This jeepney is approved. Request a GPS tracker installation from VALRYDE.</p>
+              @if (gpsError()) {
+                <ion-note color="danger" role="alert">{{ gpsError() }}</ion-note>
+              }
+              <ion-button expand="block" [disabled]="requestingGps()" (click)="requestGps()">Request GPS installation</ion-button>
+            } @else {
+              <p class="supporting-text">Available after VALRYDE Admin approves this jeepney's application.</p>
+            }
+          </section>
+
           <section aria-labelledby="driver-heading">
             <h2 id="driver-heading" class="section-heading">Driver</h2>
             <ion-list inset="true">
@@ -158,6 +195,9 @@ export class JeepneyDetailPage {
   protected readonly jeepney = signal<Jeepney | null>(null);
   protected readonly application = signal<VehicleApplication | null>(null);
   protected readonly route = signal<RouteState>({ kind: 'loading' });
+  protected readonly gps = signal<GpsSetupRequest | null>(null);
+  protected readonly requestingGps = signal(false);
+  protected readonly gpsError = signal<string | null>(null);
   protected readonly applying = signal(false);
   protected readonly applyError = signal<string | null>(null);
   protected readonly applyForm = new FormGroup({
@@ -186,15 +226,15 @@ export class JeepneyDetailPage {
     this.loadError.set(null);
     try {
       // No detail endpoints: pick this jeepney from Operator-scoped lists, so other fleets' IDs are never shown.
-      const [jeepneys, applications] = await Promise.all([
+      const [jeepneys, applications, gpsRequests] = await Promise.all([
         firstValueFrom(this.api.listJeepneys()),
         firstValueFrom(this.api.listApplications()),
+        firstValueFrom(this.api.listGpsRequests()),
       ]);
       const jeepney = jeepneys.find((j) => j.id === this.jeepneyId) ?? null;
       this.jeepney.set(jeepney);
-      this.application.set(
-        applications.filter((a) => a.jeepneyId === this.jeepneyId).sort((a, b) => b.createdAt.localeCompare(a.createdAt))[0] ?? null,
-      );
+      this.application.set(newest(applications.filter((a) => a.jeepneyId === this.jeepneyId)));
+      this.gps.set(newest(gpsRequests.filter((r) => r.jeepneyId === this.jeepneyId)));
       if (jeepney) void this.loadRoute();
     } catch (error: unknown) {
       this.loadError.set(apiErrorMessage(error, 'This jeepney could not be loaded.'));
@@ -214,6 +254,21 @@ export class JeepneyDetailPage {
           ? { kind: 'conflict' }
           : { kind: 'error', message: apiErrorMessage(error, 'The route could not be checked.') },
       );
+    }
+  }
+
+  protected async requestGps(): Promise<void> {
+    const application = this.application();
+    if (!application || application.status !== 'APPROVED' || this.requestingGps()) return;
+    this.requestingGps.set(true);
+    this.gpsError.set(null);
+    try {
+      await firstValueFrom(this.api.submitGpsRequest(application.id));
+      await this.load();
+    } catch (error: unknown) {
+      this.gpsError.set(apiErrorMessage(error, 'The GPS installation request could not be submitted.'));
+    } finally {
+      this.requestingGps.set(false);
     }
   }
 

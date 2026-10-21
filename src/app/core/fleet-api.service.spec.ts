@@ -74,4 +74,25 @@ describe('FleetApiService', () => {
     expect(updated.request.body).toEqual({ status: 'INACTIVE' });
     updated.flush({ group: {} });
   });
+
+  it('submits a GPS request for an application only', () => {
+    api.submitGpsRequest('a-1').subscribe();
+    const pending = http.expectOne('/api/gps-setup-requests');
+    expect(pending.request.body).toEqual({ vehicleApplicationId: 'a-1' });
+    pending.flush({ request: {} });
+  });
+
+  it('passes search and pagination to the public route list', () => {
+    api.listRoutes({ q: 'cubao', page: 2, pageSize: 20 }).subscribe();
+    const pending = http.expectOne((r) => r.url === '/api/transit-routes');
+    expect(pending.request.params.toString()).toBe('q=cubao&page=2&pageSize=20');
+    pending.flush({ routes: [], pagination: {} });
+  });
+
+  it('assigns a route direction to exactly one target', () => {
+    api.assignRoute('d-1', { jeepneyId: 'j-1' }).subscribe();
+    const pending = http.expectOne('/api/route-assignments');
+    expect(pending.request.body).toEqual({ routeDirectionId: 'd-1', jeepneyId: 'j-1' });
+    pending.flush({ assignment: {} });
+  });
 });

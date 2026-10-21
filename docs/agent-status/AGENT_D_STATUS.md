@@ -1,18 +1,18 @@
 # VALRYDE — Agent D Status
 
 ## Current snapshot
-- Updated at (ISO 8601, Asia/Manila): 2026-10-22T07:51T:00+08:00
+- Updated at (ISO 8601, Asia/Manila): 2026-10-22T07:58T:00+08:00
 - Agent / module: D — Driver/Operator Mobile
 - Repository: `valryde-mobile-driver-operator`
-- Branch / HEAD SHA: `feat/48-50-operator-fleet` stacked on `feat/38-46-account-security` (PR #3) on `main` @ `9921ee2`
-- GitHub issues / PRs: PR #1, #2 merged. PR #3 (D1 account security) open; fleet PR stacked on it (see activity log).
+- Branch / HEAD SHA: `feat/55-gps-setup-workflows` stacked on `feat/48-50-operator-fleet` (PR #4) → `feat/38-46-account-security` (PR #3) → `main` @ `9921ee2`
+- GitHub issues / PRs: PR #1, #2 merged. Batch: PR #3 (D1) → PR #4 (D2/D3/D5, stacked) → GPS/transit PR (D4, stacked); see activity log.
 - Checklist IDs: 38–55
-- Implementation progress: IN_PROGRESS (`AGENT_D_INDEPENDENT_UI_BATCH_READY` batch; D1 account security READY_FOR_REVIEW)
+- Implementation progress: READY_FOR_REVIEW (`AGENT_D_INDEPENDENT_UI_BATCH_READY`)
 - Tech Lead review decision (if actually issued): PR #2 accepted and merged at `9921ee2`; independent UI batch not yet reviewed
 - Current objective: Large independent UI batch: D1 account security (38/46), D2 vehicles (48), D3 groups (50), D4 GPS/transit (55/52), D5 shell data (39/47), using only verified Agent A contracts.
-- Last confirmed result: D2/D3/D5 real Agent A run passed: jeepney create/edit/apply, server-set Pending approval, 409 duplicate, 403 status escalation, group create/edit, cross-operator and Driver 403 isolation.
-- Next concrete action: D4 GPS setup and transit (55/52) on stacked branch `feat/55-gps-setup-workflows`.
-- Blocked by / decision owner: Native device test environment (owner); real Gmail SMTP (owner); dual-role provisioning workflow (Agent A). Agent B tracking/realtime contracts remain unavailable.
+- Last confirmed result: D1–D5 real Agent A runs passed within dev-data limits; 146/146 unit tests; build 920.87 kB (warning only); test accounts retired.
+- Next concrete action: Agent G review of PR #3, then #4 and the GPS/transit PR in order. Owner/Admin: publish an ACTIVE route and approve the test application to run the gated happy paths.
+- Blocked by / decision owner: Agent A G1 (drivers list), G2 (membership), G3 (assignment marker), G4 (unassign), G7 (route change requests); Admin-only approvals/GPS transitions; Agent B tracking; owner: devices, Gmail, dev-record cleanup.
 - Dependencies / affected agents: Agent A for auth/RBAC/fleet/route/application APIs; Agent B for tracking/latest-state/compliance/realtime; Agent E for Admin-owned route and GPS operations; Agent F for device runbooks; Tech Lead for shared-contract approval and synchronized governance correction.
 
 ## Checklist coverage
@@ -32,10 +32,10 @@
 | 49 | Driver Management & Assignment | NOT_STARTED | Planning documentation only | Existing fleet routes identified; DTO verification pending |
 | 50 | Fleet Group Management | IN_PROGRESS (D3 READY_FOR_REVIEW) | Group list/create/edit/status | Membership gated on G1/G2 |
 | 51 | Group Live Tracking | NOT_STARTED | Planning documentation only | Scoped REST/realtime contracts required |
-| 52 | Transit Assignment, Details & Route Change Request | NOT_STARTED | Planning documentation only | Assignment exists; route-change request contract pending |
+| 52 | Transit Assignment, Details & Route Change Request | IN_PROGRESS (D4 READY_FOR_REVIEW) | Official route catalogue/detail, direction assignment to own jeepney/group | Real success needs an Admin-published route; route change requests gated (G7) |
 | 53 | Route Compliance Overview | NOT_STARTED | Planning documentation only | Compliance API/DTO required |
 | 54 | Transit Summary | NOT_STARTED | Planning documentation only | Summary API/DTO required |
-| 55 | GPS Device Setup Request & Status | NOT_STARTED | Planning documentation only | Existing request routes identified; mapping remains Admin-only |
+| 55 | GPS Device Setup Request & Status | IN_PROGRESS (D4 READY_FOR_REVIEW) | Request on APPROVED application, server status/verification display, Requests hub; `docs/testing/GPS_TRANSIT_INTEGRATION.md` | Successful request + lifecycle are Admin-gated; mapping Admin-only |
 
 ## Latest verification
 | Command / check | Environment | Result | Date/time | Evidence / notes |
@@ -92,6 +92,22 @@
 - State: OWNER_VERIFICATION_PENDING; not required for documentation recovery.
 
 ## Activity log (newest first; preserve prior entries)
+### 2026-10-22 07:58 +08:00 — D4 GPS setup and transits (independent UI batch, part 3) — AGENT_D_INDEPENDENT_UI_BATCH_READY
+- Action / reason: Batch package D4.
+- Checklist/issue: 55, 52 (partial).
+- Files/config/services affected:
+  - `fleet.models.ts` and `fleet-api.service.ts`: GPS list/submit, route list/detail, route assignment.
+  - Jeepney detail GPS section; Requests hub; Transits list and detail with assignment picker.
+  - Routes, specs, `docs/testing/GPS_TRANSIT_INTEGRATION.md`, classification.
+- Observed result (success/failure/rollback): Real negative and empty paths passed. The happy paths can't run on current dev data: there are no ACTIVE routes, and approval is Admin-only.
+- Validation and evidence: Real responses:
+  - GPS list 200; GPS request on a PENDING application 409 `VEHICLE_NOT_APPROVED`, unknown application 404
+  - assignment with both or no targets 400; unknown direction 409 `ROUTE_NOT_APPROVED`; Driver assignment 403
+  - Tests: 146/146 unit tests.
+- Contracts / risks / dependencies: No contract changes. Installation and mapping are never asserted. Route-change requests are gated (G7). All three test accounts were retired, all sessions revoked and Mailpit emptied; dev records need owner-approved cleanup.
+- Commit/PR link or SHA (if available): See the stacked PR on `feat/55-gps-setup-workflows`.
+- Next action / owner gate: Agent G review; owner/Admin data for the gated happy paths.
+
 ### 2026-10-22 07:51 +08:00 — D2/D3/D5 Operator fleet (independent UI batch, part 2)
 - Action / reason: Batch package D2 (vehicles), D3 (groups), D5 (dashboard counts and Driver home), using only inventoried Agent A contracts.
 - Checklist/issue: 48, 50, 47, 39 (partial).

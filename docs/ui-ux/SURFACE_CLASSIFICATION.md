@@ -76,17 +76,17 @@
 | O15 | Edit Group | COMP | — | Built | Name, description, Active/Inactive. |
 | O16 | Manage Group Members | SHEET | — | | |
 | O17 | Fleet Live Map | PAGE | B | | |
-| O18 | Transits | PAGE | A | Placeholder | Transits tab root; summary part gated. |
-| O19 | Transit Detail | PAGE | — | | Read-only official route/directions. |
-| O20 | Assign Transit Direction | SHEET | — | | Re-reads the server effective route after submit. |
-| O21 | Transit Route Map | COMP | B | | Map segment of O19. |
+| O18 | Transits | PAGE | A | Built (catalogue) | Official ACTIVE routes with server search/pagination; operational summary gated (Agent B). |
+| O19 | Transit Detail | PAGE | — | Built | Read-only official directions; assign action per direction. |
+| O20 | Assign Transit Direction | SHEET | — | Built | `ion-alert` picker over own jeepneys/groups; replacement warning; server messages for conflict/not-approved/forbidden. |
+| O21 | Transit Route Map | COMP | B | | Map release (MapLibre) not started. |
 | O22 | Transit Summary | COMP | A+B | | Summary segment of O19; aggregate contract blocked. |
 | O23 | Compliance Overview | PAGE | B | | |
 | O24 | Vehicle Compliance Detail | PAGE | B | | |
-| O25 | Requests Hub | PAGE | — | Placeholder | Requests tab root. |
-| O26 | GPS Setup Requests | PAGE | A | | |
-| O27 | New GPS Setup Request | PAGE | A | | |
-| O28 | GPS Request Detail | PAGE | A | | |
+| O25 | Requests Hub | PAGE | — | Built | Applications and GPS requests with plates; route changes gated (G7). |
+| O26 | GPS Setup Requests | PAGE | A | Built (in O25) | Server status and verification only. |
+| O27 | New GPS Setup Request | PAGE | A | Built (in O05) | Offered only for an APPROVED application; server decides (409 otherwise). |
+| O28 | GPS Request Detail | PAGE | A | Built (in O05) | Status, schedule, installer-reported date, verification, rejection reason; never asserts completion. |
 | O29 | Route Change Requests | PAGE | A-blocked | | Tech Lead: MVP requirement, backend-blocked (Agent A missing capability G7). Gated until workflow, endpoints, RBAC and DTOs are approved. |
 | O30 | New Route Change Request | PAGE | A-blocked | | Tech Lead: MVP requirement, backend-blocked (G7). Describes a requested change only; never edits official geometry. |
 

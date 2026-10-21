@@ -6,7 +6,7 @@ import { of, throwError } from 'rxjs';
 
 import { DriverHomePage } from '../driver/driver-home.page';
 import { FleetApiService } from '../core/fleet-api.service';
-import type { FleetGroup, Jeepney, VehicleApplication } from '../core/fleet.models';
+import type { FleetGroup, GpsSetupRequest, Jeepney, TransitRoute, VehicleApplication } from '../core/fleet.models';
 import { GroupDetailPage } from './group-detail.page';
 import { GroupFormPage } from './group-form.page';
 import { GroupsPage } from './groups.page';
@@ -14,6 +14,9 @@ import { JeepneyDetailPage } from './jeepney-detail.page';
 import { JeepneyFormPage } from './jeepney-form.page';
 import { JeepneysPage } from './jeepneys.page';
 import { OperatorDashboardPage } from './operator-dashboard.page';
+import { RequestsPage } from './requests.page';
+import { TransitDetailPage } from './transit-detail.page';
+import { TransitsPage } from './transits.page';
 
 const jeepney = (over: Partial<Jeepney> = {}): Jeepney => ({
   id: 'j-1',
@@ -50,6 +53,36 @@ const group = (over: Partial<FleetGroup> = {}): FleetGroup => ({
   updatedAt: '2026-10-22T00:00:00Z',
   ...over,
 });
+const gpsRequest = (over: Partial<GpsSetupRequest> = {}): GpsSetupRequest => ({
+  id: 'gps-1',
+  vehicleApplicationId: 'a-1',
+  jeepneyId: 'j-1',
+  requestedByUserId: 'u-1',
+  status: 'PENDING',
+  verificationStatus: 'NOT_STARTED',
+  scheduledAt: null,
+  installedAt: null,
+  rejectedReason: null,
+  verificationChecks: {},
+  verifiedByUserId: null,
+  verifiedAt: null,
+  createdAt: '2026-10-22T02:00:00Z',
+  updatedAt: '2026-10-22T02:00:00Z',
+  ...over,
+});
+const transitRoute: TransitRoute = {
+  id: 'r-1',
+  routeCode: 'T101',
+  publicName: 'Cubao – Quiapo',
+  description: null,
+  routeColorHex: '#E53935',
+  status: 'ACTIVE',
+  createdAt: '',
+  updatedAt: '',
+  directions: [
+    { id: 'd-1', routeId: 'r-1', directionLabel: 'Southbound', originName: 'Cubao', destinationName: 'Quiapo', geometry: { type: 'LineString', coordinates: [] }, corridorM: 100, status: 'ACTIVE', createdAt: '', updatedAt: '' },
+  ],
+};
 const rejected = (status: number, code: string, message = code) =>
   throwError(() => new HttpErrorResponse({ status, error: { error: { code, message } } }));
 
@@ -64,7 +97,12 @@ describe('Operator fleet pages', () => {
     | 'createGroup'
     | 'updateGroup'
     | 'listApplications'
-    | 'submitApplication',
+    | 'submitApplication'
+    | 'listGpsRequests'
+    | 'submitGpsRequest'
+    | 'listRoutes'
+    | 'getRoute'
+    | 'assignRoute',
     Mock
   >;
 
@@ -109,6 +147,11 @@ describe('Operator fleet pages', () => {
       updateGroup: vi.fn(() => of(group())),
       listApplications: vi.fn(() => of([])),
       submitApplication: vi.fn(() => of(application())),
+      listGpsRequests: vi.fn(() => of([])),
+      submitGpsRequest: vi.fn(() => of(gpsRequest())),
+      listRoutes: vi.fn(() => of({ routes: [transitRoute], pagination: { page: 1, pageSize: 20, total: 1, totalPages: 1 } })),
+      getRoute: vi.fn(() => of(transitRoute)),
+      assignRoute: vi.fn(() => of({})),
     };
   });
 
@@ -328,6 +371,126 @@ describe('Operator fleet pages', () => {
     it('shows the no-assignment state for a Driver without jeepneys', async () => {
       api.listJeepneys.mockReturnValue(of([]));
       expect((await render(DriverHomePage)).text()).toContain('No assigned jeepney');
+    });
+  });
+
+  describe('GPS installation (D4, checklist 55)', () => {
+    const clickButton = (root: HTMLElement, label: string) =>
+      [...root.querySelectorAll('ion-button')].find((b) => b.textContent?.includes(label))?.dispatchEvent(new Event('click'));
+
+    it('explains that GPS setup waits for Admin approval', async () => {
+      api.listApplications.mockReturnValue(of([application({ status: 'PENDING' })]));
+      const { text } = await render(JeepneyDetailPage, { id: 'j-1' });
+      expect(text()).toContain('Available after VALRYDE Admin approves');
+      expect(text()).not.toContain('Request GPS installation');
+    });
+
+    it('requests installation for an approved application and shows the server state', async () => {
+      api.listJeepneys.mockReturnValue(of([jeepney({ status: 'APPROVED' })]));
+      api.listApplications.mockReturnValue(of([application({ status: 'APPROVED' })]));
+      const { fixture, settle, text } = await render(JeepneyDetailPage, { id: 'j-1' });
+      api.listGpsRequests.mockReturnValue(of([gpsRequest()]));
+      clickButton(fixture.nativeElement as HTMLElement, 'Request GPS installation');
+      await settle();
+      expect(api.submitGpsRequest).toHaveBeenCalledWith('a-1');
+      expect(text()).toContain('Installation request');
+      expect(text()).toContain('Pending');
+      expect(text()).toContain('Tracking starts only after VALRYDE verifies the installed device.');
+    });
+
+    it('shows a server workflow rejection without changing anything', async () => {
+      api.listJeepneys.mockReturnValue(of([jeepney({ status: 'APPROVED' })]));
+      api.listApplications.mockReturnValue(of([application({ status: 'APPROVED' })]));
+      api.submitGpsRequest.mockReturnValue(rejected(409, 'VEHICLE_NOT_APPROVED', 'Vehicle application must be approved first'));
+      const { fixture, settle, text } = await render(JeepneyDetailPage, { id: 'j-1' });
+      clickButton(fixture.nativeElement as HTMLElement, 'Request GPS installation');
+      await settle();
+      expect(text()).toContain('Vehicle application must be approved first');
+      expect(text()).not.toContain('Installation request');
+    });
+
+    it('reports installation only as the server states it, with schedule and rejection details', async () => {
+      api.listGpsRequests.mockReturnValue(
+        of([gpsRequest({ status: 'INSTALLED', verificationStatus: 'PENDING', scheduledAt: '2026-10-25T09:00:00Z', installedAt: '2026-10-25T11:00:00Z' })]),
+      );
+      const { text } = await render(JeepneyDetailPage, { id: 'j-1' });
+      expect(text()).toContain('Installed — awaiting verification');
+      expect(text()).toContain('2026-10-25 09:00');
+      expect(text()).not.toContain('Verified');
+      TestBed.resetTestingModule();
+      api.listGpsRequests.mockReturnValue(of([gpsRequest({ status: 'REJECTED', rejectedReason: 'Wiring not accessible' })]));
+      expect((await render(JeepneyDetailPage, { id: 'j-1' })).text()).toContain('Wiring not accessible');
+    });
+
+    it('lists applications and GPS requests with plates; route-change requests stay gated', async () => {
+      api.listApplications.mockReturnValue(of([application()]));
+      api.listGpsRequests.mockReturnValue(of([gpsRequest({ status: 'SCHEDULED' })]));
+      const { text } = await render(RequestsPage);
+      expect(text()).toContain('ABC 123');
+      expect(text()).toContain('Installation scheduled');
+      expect(text()).toContain('accept route addition or change requests yet');
+    });
+  });
+
+  describe('Official transits and assignment (D4, checklist 52)', () => {
+    interface Detail {
+      choose(d: unknown): void;
+      assign(v: string): Promise<void>;
+      options(): { value: string }[];
+    }
+
+    it('lists official routes with server search', async () => {
+      const { fixture, settle, text } = await render(TransitsPage);
+      expect(text()).toContain('T101 · Cubao – Quiapo');
+      (fixture.componentInstance as unknown as { search(q: string): void }).search(' quiapo ');
+      await settle();
+      expect(api.listRoutes).toHaveBeenLastCalledWith({ q: 'quiapo', page: 1, pageSize: 20 });
+    });
+
+    it('shows an empty catalogue', async () => {
+      api.listRoutes.mockReturnValue(of({ routes: [], pagination: { page: 1, pageSize: 20, total: 0, totalPages: 0 } }));
+      expect((await render(TransitsPage)).text()).toContain('No routes have been published yet.');
+    });
+
+    it('offers only the operator-scoped jeepneys and groups as targets', async () => {
+      const { fixture } = await render(TransitDetailPage, { routeId: 'r-1' });
+      const page = fixture.componentInstance as unknown as Detail;
+      expect(page.options().map((o) => o.value)).toEqual(['j:j-1', 'j:j-2', 'g:g-1']);
+    });
+
+    it('assigns a direction to exactly one target', async () => {
+      const { fixture, settle, text } = await render(TransitDetailPage, { routeId: 'r-1' });
+      const page = fixture.componentInstance as unknown as Detail;
+      page.choose(transitRoute.directions[0]);
+      await page.assign('g:g-1');
+      await settle();
+      expect(api.assignRoute).toHaveBeenCalledWith('d-1', { groupId: 'g-1' });
+      expect(text()).toContain('Group North now uses Cubao → Quiapo.');
+    });
+
+    it.each([
+      [rejected(409, 'ROUTE_ASSIGNMENT_CONFLICT'), 'Assign a route to the jeepney directly instead.'],
+      [rejected(409, 'ROUTE_NOT_APPROVED', 'Route and direction must be active before assignment'), 'Route and direction must be active before assignment'],
+      [rejected(403, 'FORBIDDEN', 'Assignment target is outside operator scope'), 'Assignment target is outside operator scope'],
+    ])('shows server rejections of an assignment', async (response, expected) => {
+      api.assignRoute.mockReturnValue(response);
+      const { fixture, settle, text } = await render(TransitDetailPage, { routeId: 'r-1' });
+      const page = fixture.componentInstance as unknown as Detail;
+      page.choose(transitRoute.directions[0]);
+      await page.assign('j:j-1');
+      await settle();
+      expect(text()).toContain(expected);
+    });
+
+    it('cannot assign without a fleet', async () => {
+      api.listJeepneys.mockReturnValue(of([]));
+      api.listGroups.mockReturnValue(of([]));
+      const { fixture, text } = await render(TransitDetailPage, { routeId: 'r-1' });
+      const page = fixture.componentInstance as unknown as Detail;
+      page.choose(transitRoute.directions[0]);
+      await page.assign('j:anything');
+      expect(api.assignRoute).not.toHaveBeenCalled();
+      expect(text()).toContain('Add a jeepney or group to your fleet to assign this route.');
     });
   });
 });

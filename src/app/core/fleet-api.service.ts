@@ -1,4 +1,4 @@
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpParams } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
 import { map, type Observable } from 'rxjs';
 
@@ -8,9 +8,13 @@ import type {
   FleetGroup,
   FleetGroupCreate,
   FleetGroupUpdate,
+  GpsSetupRequest,
   Jeepney,
   JeepneyCreate,
   JeepneyUpdate,
+  Pagination,
+  RouteAssignmentTarget,
+  TransitRoute,
   VehicleApplication,
 } from './fleet.models';
 
@@ -60,6 +64,33 @@ export class FleetApiService {
     return this.http
       .get<{ applications: VehicleApplication[] }>(`${this.api}/vehicle-applications`)
       .pipe(map((r) => r.applications));
+  }
+
+  listGpsRequests(): Observable<GpsSetupRequest[]> {
+    return this.http.get<{ requests: GpsSetupRequest[] }>(`${this.api}/gps-setup-requests`).pipe(map((r) => r.requests));
+  }
+
+  /** Only an APPROVED application can be submitted (409 VEHICLE_NOT_APPROVED otherwise). */
+  submitGpsRequest(vehicleApplicationId: string): Observable<GpsSetupRequest> {
+    return this.http
+      .post<{ request: GpsSetupRequest }>(`${this.api}/gps-setup-requests`, { vehicleApplicationId })
+      .pipe(map((r) => r.request));
+  }
+
+  /** Public official routes: ACTIVE routes and directions only. */
+  listRoutes(query: { q?: string; page?: number; pageSize?: number } = {}): Observable<{ routes: TransitRoute[]; pagination: Pagination }> {
+    let params = new HttpParams();
+    for (const [key, value] of Object.entries(query)) if (value !== undefined && value !== '') params = params.set(key, String(value));
+    return this.http.get<{ routes: TransitRoute[]; pagination: Pagination }>(`${this.api}/transit-routes`, { params });
+  }
+
+  getRoute(routeId: string): Observable<TransitRoute> {
+    return this.http.get<{ route: TransitRoute }>(`${this.api}/transit-routes/${encodeURIComponent(routeId)}`).pipe(map((r) => r.route));
+  }
+
+  /** OPERATOR only; replaces the target's active assignment (there is no unassign). */
+  assignRoute(routeDirectionId: string, target: RouteAssignmentTarget): Observable<unknown> {
+    return this.http.post(`${this.api}/route-assignments`, { routeDirectionId, ...target });
   }
 
   submitApplication(jeepneyId: string, applicantNotes?: string): Observable<VehicleApplication> {
