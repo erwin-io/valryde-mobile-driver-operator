@@ -147,3 +147,7 @@ vite.config.ts.timestamp-*
 
 # Turbo Repo
 .turbo
+
+# Angular CLI cache and local agent tooling
+.angular/
+.claude/

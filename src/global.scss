@@ -1,0 +1,59 @@
+@use '@ionic/angular/css/core.css';
+@use '@ionic/angular/css/normalize.css';
+@use '@ionic/angular/css/structure.css';
+@use '@ionic/angular/css/typography.css';
+@use '@ionic/angular/css/display.css';
+@use '@ionic/angular/css/padding.css';
+@use '@ionic/angular/css/flex-utils.css';
+@use './theme/variables';
+
+html,
+body {
+  background: var(--vr-color-surface-subtle);
+}
+
+body {
+  color: var(--vr-color-text);
+}
+
+.page-content {
+  --background: var(--vr-color-surface-subtle);
+}
+
+.page-stack {
+  display: grid;
+  gap: var(--vr-space-4);
+  margin: 0 auto;
+  max-width: 48rem;
+  padding: var(--vr-space-4);
+}
+
+.section-heading {
+  color: var(--vr-color-text);
+  font-size: 1.125rem;
+  font-weight: 700;
+  margin: var(--vr-space-2) 0 0;
+}
+
+.supporting-text {
+  color: var(--vr-color-text-muted);
+  font-size: 0.875rem;
+  line-height: 1.45;
+}
+
+.foundation-notice {
+  align-items: center;
+  background: var(--vr-color-info-soft);
+  border: 1px solid var(--vr-color-info-border);
+  color: var(--vr-color-info-text);
+  display: flex;
+  font-size: 0.8125rem;
+  gap: var(--vr-space-2);
+  padding: var(--vr-space-2) var(--vr-space-4);
+}
+
+@media (min-width: 768px) {
+  .page-stack {
+    padding: var(--vr-space-6);
+  }
+}

@@ -1,0 +1,7 @@
+{
+  "name": "Valryde Operator",
+  "integrations": {
+    "capacitor": {}
+  },
+  "type": "angular-standalone"
+}
