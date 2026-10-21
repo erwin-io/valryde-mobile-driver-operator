@@ -1,24 +1,24 @@
 # VALRYDE — Agent D Status
 
 ## Current snapshot
-- Updated at (ISO 8601, Asia/Manila): 2026-10-21T19:10:00+08:00
+- Updated at (ISO 8601, Asia/Manila): 2026-10-22T03:03T:00+08:00
 - Agent / module: D — Driver/Operator Mobile
 - Repository: `valryde-mobile-driver-operator`
-- Branch / HEAD SHA: `feat/account-session` from `main` @ `b8e949b6d007210e3fa3c03ae2c95fc8ca9d6154` (PR #1 merged); latest SHA in PR #2
-- GitHub issues / PRs: PR #1 merged. [PR #2](https://github.com/erwin-io/valryde-mobile-driver-operator/pull/2) `feat/account-session` open; Tech Lead CHANGES REQUIRED (refresh/logout race) addressed, awaiting final review.
+- Branch / HEAD SHA: `feat/38-46-account-security` from `main` @ `9921ee209b7c0829eace5d2fa6c4c457087a6903` (PR #2 merged); stacked fleet/GPS branches follow
+- GitHub issues / PRs: PR #1, #2 merged. Independent UI batch: account-security PR (this branch), then stacked fleet and GPS PRs (see activity log).
 - Checklist IDs: 38–55
-- Implementation progress: READY_FOR_REVIEW (`AGENT_D_PR2_SECURITY_CORRECTION_READY`)
-- Tech Lead review decision (if actually issued): Foundation ACCEPTED (PR #1). PR #2: CHANGES REQUIRED at `4bac2b0` (session resurrection race); correction submitted, final review pending
-- Current objective: Complete Driver/Operator account and session functionality (sign-out/revocation, verification, recovery, secure persistence, real Agent A integration, role switching, expiry).
-- Last confirmed result: Real Agent A dev API + isolated Mailpit: register, verify, verified login (DRIVER and OPERATOR), refresh on expiry, rotation, logout revocation and server RBAC all passed; 56/56 unit tests; build passes with documented budget warning.
-- Next concrete action: Agent G final review of PR #2. Then: Driver/Operator profile and account-security screens (S11/S12).
+- Implementation progress: IN_PROGRESS (`AGENT_D_INDEPENDENT_UI_BATCH_READY` batch; D1 account security READY_FOR_REVIEW)
+- Tech Lead review decision (if actually issued): PR #2 accepted and merged at `9921ee2`; independent UI batch not yet reviewed
+- Current objective: Large independent UI batch: D1 account security (38/46), D2 vehicles (48), D3 groups (50), D4 GPS/transit (55/52), D5 shell data (39/47), using only verified Agent A contracts.
+- Last confirmed result: D1 real Agent A + Mailpit run passed (profile, email change + confirm with session revocation, password change incl. wrong-current handling); contract inventory written.
+- Next concrete action: D2/D3 Operator fleet on stacked branch `feat/48-50-operator-fleet`.
 - Blocked by / decision owner: Native device test environment (owner); real Gmail SMTP (owner); dual-role provisioning workflow (Agent A). Agent B tracking/realtime contracts remain unavailable.
 - Dependencies / affected agents: Agent A for auth/RBAC/fleet/route/application APIs; Agent B for tracking/latest-state/compliance/realtime; Agent E for Admin-owned route and GPS operations; Agent F for device runbooks; Tech Lead for shared-contract approval and synchronized governance correction.
 
 ## Checklist coverage
 | Checklist ID | Feature / slice | Progress | Evidence (files/tests/PR) | Blocker / next action |
 |---:|---|---|---|---|
-| 38 | Driver Signup / Login / Profile | IN_PROGRESS | Sign-in/register, verify email, forgot/reset password, Account (server profile, sign-out with revocation), secure refresh-token vault, restore; real Agent A tests in `docs/testing/ACCOUNT_SESSION_INTEGRATION.md` | Profile edit/security (S11/S12), native device verification |
+| 38 | Driver Signup / Login / Profile | IN_PROGRESS (D1 READY_FOR_REVIEW) | Sign-in/register, verify email, forgot/reset password, Account (server profile, sign-out with revocation), secure refresh-token vault, restore; real Agent A tests in `docs/testing/ACCOUNT_SESSION_INTEGRATION.md` | Profile edit/security (S11/S12), native device verification |
 | 39 | My Jeepney | NOT_STARTED | Driver Home shell with no-assignment state only | Development directive and fleet DTO confirmation required |
 | 40 | Assigned Transit Route & Direction | NOT_STARTED | Planning documentation only | Consume backend effective-route contract when authorized |
 | 41 | Driver Route Guidance Map | NOT_STARTED | Planning documentation only | Development directive and map/tracking contracts required |
@@ -26,7 +26,7 @@
 | 43 | Route Compliance Status & Alert | NOT_STARTED | Planning documentation only | Approved backend compliance contract required |
 | 44 | Same-Group Jeepneys Live Map | NOT_STARTED | Planning documentation only | Scoped REST/realtime contracts required |
 | 45 | Groupmate Status & Details | NOT_STARTED | Planning documentation only | Scoped groupmate contract required |
-| 46 | Operator Signup / Login / Profile | IN_PROGRESS | Same shared account/session slice, verified against the real API as OPERATOR | Profile edit/security (S11/S12), native device verification |
+| 46 | Operator Signup / Login / Profile | IN_PROGRESS (D1 READY_FOR_REVIEW) | Same shared account/session slice, verified against the real API as OPERATOR | Profile edit/security (S11/S12), native device verification |
 | 47 | Operator Dashboard | NOT_STARTED | Dashboard layout shell; counts shown as unavailable, none computed locally | Aggregate/dashboard contract required |
 | 48 | My Jeepneys, Applications & Details | NOT_STARTED | Planning documentation only | Existing routes identified; feature authorization required |
 | 49 | Driver Management & Assignment | NOT_STARTED | Planning documentation only | Existing fleet routes identified; DTO verification pending |
@@ -92,6 +92,21 @@
 - State: OWNER_VERIFICATION_PENDING; not required for documentation recovery.
 
 ## Activity log (newest first; preserve prior entries)
+### 2026-10-22 03:03 +08:00 — D1 account security (independent UI batch, part 1)
+- Action / reason: Tech Lead "Large Independent UI Development Release" after PR #2 merged at `9921ee2`. First step: contract inventory from Agent A `origin/main` `827738c` (read-only `git show`).
+- Checklist/issue: 38, 46 (partial).
+- Files/config/services affected:
+  - New: `docs/integration/AGENT_D_CONTRACT_INVENTORY.md`.
+  - Edit-profile, change-password and change-email pages, plus a public `/auth/confirm-email-change` page.
+  - `AuthApiService` (4 calls); `SessionService.updateProfile` (epoch-guarded) and `endRevoked`.
+  - The interceptor now refreshes only on `AUTH_REQUIRED`; `SESSION_REVOKED` ends the session; other 401s pass through.
+  - Shared `accountRoutes` for both shells; sign-in notice; `workspaceFor` helper; tests; evidence doc.
+- Observed result (success/failure/rollback): All D1 real flows passed (see `docs/testing/ACCOUNT_SECURITY_INTEGRATION.md`). Defect prevented by design: a wrong current password (401 `INVALID_CREDENTIALS`) would previously have triggered a refresh and resent the password attempt.
+- Validation and evidence: Unit tests and full checks are in Latest verification. Real responses: register 201, verify 200, PATCH /me 200, change-email 202, confirm 200, revoked /me 401 `SESSION_REVOKED`, old/new email login 401/200, wrong-current 401, change-password 204, old/new password 401/200.
+- Contracts / risks / dependencies: No contract changes. Isolated API run from the local `valryde-api` checkout (`711f4c4`, logic-equivalent for these flows) with env overrides only.
+- Commit/PR link or SHA (if available): See the PR on `feat/38-46-account-security`.
+- Next action / owner gate: Stacked fleet and GPS PRs. Owner: physical device, Gmail, and test-account cleanup.
+
 ### 2026-10-21 19:10 +08:00 — PR #2 security correction: session-epoch invalidation (AGENT_D_PR2_SECURITY_CORRECTION_READY)
 - Action / reason: Tech Lead finding on PR #2 at `4bac2b0`. `logout()` did not invalidate an in-flight `exchange()`, so a late refresh response could call `accept()`, re-authenticate and save a new refresh token.
 - Checklist/issue: Agent D 38, 46 (partial).

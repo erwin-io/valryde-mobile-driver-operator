@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
-import { Router } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { IonAlert, IonButton, IonContent, IonHeader, IonItem, IonLabel, IonList, IonTitle, IonToolbar } from '@ionic/angular';
 
 import type { MobileRole } from '../core/auth.models';
@@ -12,7 +12,7 @@ const roleLabel = (role: MobileRole | null) => (role === 'OPERATOR' ? 'Operator'
 @Component({
   selector: 'app-account-page',
   standalone: true,
-  imports: [IonAlert, IonButton, IonContent, IonHeader, IonItem, IonLabel, IonList, IonTitle, IonToolbar],
+  imports: [RouterLink, IonAlert, IonButton, IonContent, IonHeader, IonItem, IonLabel, IonList, IonTitle, IonToolbar],
   template: `
     <ion-header>
       <ion-toolbar><ion-title>Account</ion-title></ion-toolbar>
@@ -35,6 +35,12 @@ const roleLabel = (role: MobileRole | null) => (role === 'OPERATOR' ? 'Operator'
               <h2>{{ persistent ? 'Signed in securely on this device' : 'Signed in for this browser tab only' }}</h2>
             </ion-label>
           </ion-item>
+        </ion-list>
+
+        <ion-list inset="true">
+          <ion-item [routerLink]="'profile'" detail="true"><ion-label>Edit profile</ion-label></ion-item>
+          <ion-item [routerLink]="'password'" detail="true"><ion-label>Change password</ion-label></ion-item>
+          <ion-item [routerLink]="'email'" detail="true"><ion-label>Change email</ion-label></ion-item>
         </ion-list>
 
         @if (otherRole(); as role) {

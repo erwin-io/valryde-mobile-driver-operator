@@ -28,7 +28,7 @@ describe('SessionService', () => {
   const offline = () => throwError(() => new HttpErrorResponse({ status: 0 }));
 
   type Mock = ReturnType<typeof vi.fn>;
-  let api: { login: Mock; logout: Mock; refresh: Mock; currentUser: Mock };
+  let api: { login: Mock; logout: Mock; refresh: Mock; currentUser: Mock; updateProfile: Mock };
   let vault: { stored: string | null; persistent: boolean; load: Mock; save: Mock; clear: Mock };
   const withRoles = (roles: AuthTokens['user']['roles'], refreshToken = tokens.refreshToken): AuthTokens => ({
     ...tokens,
@@ -44,6 +44,7 @@ describe('SessionService', () => {
       logout: vi.fn(() => of(null)),
       refresh: vi.fn(() => of(tokens)),
       currentUser: vi.fn(() => of({ user: tokens.user })),
+      updateProfile: vi.fn((displayName: string) => of({ user: { ...tokens.user, displayName } })),
     };
     vault = {
       stored: null,
@@ -144,6 +145,37 @@ describe('SessionService', () => {
     await session.reloadUser();
     expect(session.activeRole()).toBeNull();
     expect(session.availableRoles()).toEqual(['OPERATOR']);
+  });
+
+  it('shows the server copy of a saved display name', async () => {
+    const session = TestBed.inject(SessionService);
+    await signIn(session);
+    await session.updateProfile('Renamed Operator');
+    expect(api.updateProfile).toHaveBeenCalledWith('Renamed Operator');
+    expect(session.user()?.displayName).toBe('Renamed Operator');
+  });
+
+  it('ignores a profile save that completes after sign-out', async () => {
+    const late = new Subject<{ user: AuthTokens['user'] }>();
+    api.updateProfile.mockReturnValue(late);
+    const session = TestBed.inject(SessionService);
+    await signIn(session);
+    const saving = session.updateProfile('Too Late');
+    await session.logout();
+    late.next({ user: { ...tokens.user, displayName: 'Too Late' } });
+    late.complete();
+    await saving;
+    expect(session.user()).toBeNull();
+  });
+
+  it('ends a server-revoked session locally and marks it expired', async () => {
+    const session = TestBed.inject(SessionService);
+    await signIn(session);
+    session.endRevoked();
+    await settle();
+    expect(session.status()).toBe('anonymous');
+    expect(session.expired()).toBe(true);
+    expect(vault.stored).toBeNull();
   });
 
   describe('secure persistence', () => {

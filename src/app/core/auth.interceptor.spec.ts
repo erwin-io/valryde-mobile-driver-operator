@@ -11,13 +11,13 @@ describe('authInterceptor', () => {
   let http: HttpClient;
   let backend: HttpTestingController;
   let tokens: { access: string | null; refresh: string | null };
-  let session: { refresh: ReturnType<typeof vi.fn> };
+  let session: { refresh: ReturnType<typeof vi.fn>; endRevoked: ReturnType<typeof vi.fn> };
   let router: { navigate: ReturnType<typeof vi.fn> };
   const unauthorized = { status: 401, statusText: 'Unauthorized' };
 
   beforeEach(() => {
     tokens = { access: 'old-access', refresh: 'refresh' };
-    session = { refresh: vi.fn() };
+    session = { refresh: vi.fn(), endRevoked: vi.fn() };
     router = { navigate: vi.fn(() => Promise.resolve(true)) };
     TestBed.configureTestingModule({
       providers: [
@@ -68,6 +68,32 @@ describe('authInterceptor', () => {
     backend.expectOne('/api/jeepneys').flush(null, unauthorized);
     await failed;
     expect(router.navigate).not.toHaveBeenCalled();
+  });
+
+  it('refreshes on an AUTH_REQUIRED 401 from a protected route', async () => {
+    session.refresh.mockResolvedValue('refreshed');
+    http.get('/api/jeepneys').subscribe();
+    backend.expectOne('/api/jeepneys').flush({ error: { code: 'AUTH_REQUIRED' } }, unauthorized);
+    await Promise.resolve();
+    backend.expectOne('/api/jeepneys').flush({ jeepneys: [] });
+    expect(session.refresh).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not refresh or resend a wrong current password (401 INVALID_CREDENTIALS)', async () => {
+    const failed = new Promise((resolve) => http.post('/api/auth/me/change-password', {}).subscribe({ error: resolve }));
+    backend.expectOne('/api/auth/me/change-password').flush({ error: { code: 'INVALID_CREDENTIALS' } }, unauthorized);
+    await failed;
+    expect(session.refresh).not.toHaveBeenCalled();
+    backend.expectNone('/api/auth/me/change-password');
+  });
+
+  it('ends the session without refreshing when the server revoked it (401 SESSION_REVOKED)', async () => {
+    const failed = new Promise((resolve) => http.get('/api/jeepneys').subscribe({ error: resolve }));
+    backend.expectOne('/api/jeepneys').flush({ error: { code: 'SESSION_REVOKED' } }, unauthorized);
+    await failed;
+    expect(session.refresh).not.toHaveBeenCalled();
+    expect(session.endRevoked).toHaveBeenCalled();
+    expect(router.navigate).toHaveBeenCalledWith(['/auth/sign-in']);
   });
 
   it('does not refresh on 401 from public auth endpoints', async () => {

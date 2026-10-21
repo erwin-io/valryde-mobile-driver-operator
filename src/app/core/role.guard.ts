@@ -4,7 +4,8 @@ import { type CanActivateFn, Router } from '@angular/router';
 import type { MobileRole } from './auth.models';
 import { SessionService } from './session.service';
 
-export const homeFor = (role: MobileRole) => (role === 'DRIVER' ? '/driver/home' : '/operator/dashboard');
+export const workspaceFor = (role: MobileRole) => (role === 'DRIVER' ? '/driver' : '/operator');
+export const homeFor = (role: MobileRole) => `${workspaceFor(role)}/${role === 'DRIVER' ? 'home' : 'dashboard'}`;
 
 export function roleGuard(role: MobileRole): CanActivateFn {
   return () => {

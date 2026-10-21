@@ -45,4 +45,20 @@ export class AuthApiService {
   resetPassword(token: string, password: string): Observable<null> {
     return this.http.post<null>(`${this.baseUrl}/reset-password`, { token, password });
   }
+
+  updateProfile(displayName: string): Observable<{ user: ValrydeUser }> {
+    return this.http.patch<{ user: ValrydeUser }>(`${this.baseUrl}/me`, { displayName });
+  }
+
+  changePassword(currentPassword: string, newPassword: string): Observable<null> {
+    return this.http.post<null>(`${this.baseUrl}/me/change-password`, { currentPassword, newPassword });
+  }
+
+  requestEmailChange(email: string): Observable<{ message: string }> {
+    return this.http.post<{ message: string }>(`${this.baseUrl}/me/change-email`, { email });
+  }
+
+  confirmEmailChange(token: string): Observable<{ user: ValrydeUser }> {
+    return this.http.post<{ user: ValrydeUser }>(`${this.baseUrl}/confirm-email-change`, { token });
+  }
 }
