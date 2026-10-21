@@ -1,11 +1,19 @@
 import { computed, inject, Injectable, signal } from '@angular/core';
-import { firstValueFrom } from 'rxjs';
+import { firstValueFrom, timeout } from 'rxjs';
+
+import { isClientError } from './api-error';
 
 import type { AuthTokens, LoginRequest, MobileRole, ValrydeUser } from './auth.models';
 import { AuthApiService } from './auth-api.service';
 import { TokenStoreService } from './token-store.service';
+import { TokenVaultService } from './token-vault.service';
 
-export type SessionStatus = 'anonymous' | 'authenticating' | 'authenticated';
+export type SessionStatus = 'restoring' | 'anonymous' | 'authenticating' | 'authenticated';
+
+/** `rejected`: the server refused the refresh token (session over). `unavailable`: network/outage; session kept. */
+export type RefreshResult = 'refreshed' | 'rejected' | 'unavailable';
+
+const RESTORE_TIMEOUT_MS = 10_000;
 
 /** The account authenticated but holds neither DRIVER nor OPERATOR. */
 export class NoMobileRoleError extends Error {
@@ -20,17 +28,23 @@ const isMobileRole = (role: string): role is MobileRole => role === 'DRIVER' || 
 export class SessionService {
   private readonly api = inject(AuthApiService);
   private readonly tokenStore = inject(TokenStoreService);
+  private readonly vault = inject(TokenVaultService);
   private readonly userState = signal<ValrydeUser | null>(null);
   private readonly statusState = signal<SessionStatus>('anonymous');
   private readonly activeRoleState = signal<MobileRole | null>(null);
   private readonly expiredState = signal(false);
-  private refreshing: Promise<boolean> | null = null;
+  private readonly resumableState = signal(false);
+  private refreshing: Promise<RefreshResult> | null = null;
+  // Serializes vault writes so a late save can never resurrect a token after sign-out.
+  private vaultQueue: Promise<unknown> = Promise.resolve();
 
   readonly user = this.userState.asReadonly();
   readonly status = this.statusState.asReadonly();
   readonly activeRole = this.activeRoleState.asReadonly();
   /** True after a session ended because it could not be refreshed; cleared on next sign-in. */
   readonly expired = this.expiredState.asReadonly();
+  /** A stored session exists but VALRYDE could not be reached to resume it. */
+  readonly resumable = this.resumableState.asReadonly();
   readonly availableRoles = computed(() => (this.userState()?.roles ?? []).filter(isMobileRole));
 
   async login(request: LoginRequest): Promise<AuthTokens> {
@@ -53,32 +67,48 @@ export class SessionService {
     return true;
   }
 
-  /** Single-flight refresh; on failure the session is cleared and marked expired. */
-  refresh(): Promise<boolean> {
+  /** Startup: resume a session from the OS-backed vault, if any. */
+  async restore(): Promise<void> {
+    this.statusState.set('restoring');
+    await this.vaultQueue;
+    const stored = await this.vault.load();
+    if (!stored) {
+      this.statusState.set('anonymous');
+      return;
+    }
+    const result = await this.exchange(stored, RESTORE_TIMEOUT_MS);
+    this.resumableState.set(result === 'unavailable');
+    if (result === 'unavailable') this.statusState.set('anonymous');
+  }
+
+  /** Single-flight refresh of the in-memory session. Rejection ends the session; an outage keeps it. */
+  refresh(): Promise<RefreshResult> {
     const refreshToken = this.tokenStore.refreshToken();
-    if (!refreshToken) return Promise.resolve(false);
-    this.refreshing ??= firstValueFrom(this.api.refresh(refreshToken))
-      .then((tokens) => {
-        this.accept(tokens);
-        return true;
-      })
-      .catch(() => {
-        this.clear();
-        this.expiredState.set(true);
-        return false;
-      })
-      .finally(() => (this.refreshing = null));
+    if (!refreshToken) return Promise.resolve('rejected');
+    this.refreshing ??= this.exchange(refreshToken).finally(() => (this.refreshing = null));
     return this.refreshing;
   }
 
+  /** Re-reads the profile from the server; a role the server no longer grants stops being active. */
+  async reloadUser(): Promise<void> {
+    const { user } = await firstValueFrom(this.api.currentUser());
+    this.userState.set(user);
+    const active = this.activeRoleState();
+    if (active && !user.roles.includes(active)) this.activeRoleState.set(null);
+  }
+
+  /** Clears the device first, then asks the server to revoke the refresh token. */
   async logout(): Promise<void> {
     const refreshToken = this.tokenStore.refreshToken();
     this.clear();
+    this.expiredState.set(false);
+    this.resumableState.set(false);
+    await this.vaultQueue;
     if (refreshToken) {
       try {
         await firstValueFrom(this.api.logout(refreshToken));
       } catch {
-        // Local protected state is already cleared; remote revocation can be retried by backend policy later.
+        // shortcut: revocation is best-effort when offline; the token is already gone from the device and expires server-side.
       }
     }
   }
@@ -88,6 +118,30 @@ export class SessionService {
     this.userState.set(null);
     this.activeRoleState.set(null);
     this.statusState.set('anonymous');
+    this.persist(null);
+  }
+
+  private async exchange(refreshToken: string, ms?: number): Promise<RefreshResult> {
+    try {
+      const request = this.api.refresh(refreshToken);
+      const tokens = await firstValueFrom(ms ? request.pipe(timeout(ms)) : request);
+      if (!tokens.user.roles.some(isMobileRole)) {
+        this.clear();
+        return 'rejected';
+      }
+      this.accept(tokens);
+      return 'refreshed';
+    } catch (error: unknown) {
+      if (!isClientError(error)) return 'unavailable';
+      this.clear();
+      this.expiredState.set(true);
+      return 'rejected';
+    }
+  }
+
+  private persist(refreshToken: string | null): void {
+    const write = () => (refreshToken ? this.vault.save(refreshToken) : this.vault.clear());
+    this.vaultQueue = this.vaultQueue.then(write, write).catch(() => undefined);
   }
 
   private accept(tokens: AuthTokens): void {
@@ -99,5 +153,7 @@ export class SessionService {
     const keep = current && mobileRoles.includes(current) ? current : null;
     this.activeRoleState.set(keep ?? (mobileRoles.length === 1 ? mobileRoles[0] : null));
     this.statusState.set('authenticated');
+    this.resumableState.set(false);
+    this.persist(tokens.refreshToken);
   }
 }

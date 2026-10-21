@@ -29,14 +29,14 @@
 | S03 | Choose account type / register | PAGE | — | Built | One page with a Driver/Operator segment. |
 | S04 | Driver registration | COMP | — | Built | Driver mode of S03. |
 | S05 | Operator registration | COMP | — | Built | Operator mode of S03. |
-| S06 | Verify email | PAGE | — | | Agent A endpoints observed. |
-| S07 | Forgot password | PAGE | — | | Agent A endpoint observed. |
-| S08 | Reset password | PAGE | — | | Agent A endpoint observed. |
+| S06 | Verify email | PAGE | — | Built (account slice) | Link token read once and stripped from the URL; resend form. |
+| S07 | Forgot password | PAGE | — | Built (account slice) | Enumeration-resistant server message shown verbatim. |
+| S08 | Reset password | PAGE | — | Built (account slice) | Link token stripped from URL; 12–128 and confirmation checks. |
 | S09 | Role context chooser | PAGE | — | Built | Multi-role accounts only; offers only server-granted roles. |
-| S10 | Account | PAGE | — | Placeholder | Account tab in both shells. |
+| S10 | Account | PAGE | — | Built (account slice) | Server profile via `GET /auth/me` on every visit; workspace switch; device persistence status. |
 | S11 | Edit profile | PAGE | A | | `PATCH /api/auth/me` DTO review. |
 | S12 | Account security | PAGE | — | | Change password/email endpoints observed. |
-| S13 | Sign-out confirmation | SHEET | — | | `ion-alert`. |
+| S13 | Sign-out confirmation | SHEET | — | Built (account slice) | `ion-alert`; revokes the refresh token on the server. |
 
 ## Driver
 
@@ -94,7 +94,7 @@
 
 | ID | Surface | Class | Gate | Foundation | Note |
 |---|---|---|---|---|---|
-| G01 | Initial app/session loader | GLOBAL | — | | Needed once session restore exists; tokens are in-memory only today. |
+| G01 | Initial app/session loader | GLOBAL | — | Built (account slice) | App initializer restores from the vault before first navigation (10 s cap); "Try again" when unreachable. |
 | G02 | Offline banner | GLOBAL | — | Built | `app-connectivity-banner`; pushes content down, never covers toolbars. |
 | G03 | Reconnecting indicator | GLOBAL | B | | Realtime contract required. |
 | G04 | Access denied | GLOBAL | — | Built (redirect) | `roleGuard` sends wrong-role and anonymous sessions to sign-in. A dedicated message comes with the first API 403 handling. |

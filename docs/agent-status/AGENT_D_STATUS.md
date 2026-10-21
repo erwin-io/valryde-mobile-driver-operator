@@ -1,24 +1,24 @@
 # VALRYDE — Agent D Status
 
 ## Current snapshot
-- Updated at (ISO 8601, Asia/Manila): 2026-10-21T05:00:00+08:00
+- Updated at (ISO 8601, Asia/Manila): 2026-10-21T17:45:00+08:00
 - Agent / module: D — Driver/Operator Mobile
 - Repository: `valryde-mobile-driver-operator`
-- Branch / HEAD SHA: `feat/frontend-foundation` / `ab49017d4eba52e1a497c29b24e6c2c33f41b4c6` (base `main`); branch pushed, latest SHA in PR #1
-- GitHub issues / PRs: [PR #1](https://github.com/erwin-io/valryde-mobile-driver-operator/pull/1) `feat/frontend-foundation` → `main`, open, awaiting Tech Lead review; no issue assigned.
+- Branch / HEAD SHA: `feat/account-session` from `main` @ `b8e949b6d007210e3fa3c03ae2c95fc8ca9d6154` (PR #1 merged); latest SHA in PR #2
+- GitHub issues / PRs: PR #1 merged (foundation accepted). Account/session PR on `feat/account-session` (see activity log); no issue assigned.
 - Checklist IDs: 38–55
-- Implementation progress: READY_FOR_REVIEW (`AGENT_D_FOUNDATION_CORRECTIONS_READY`)
-- Tech Lead review decision (if actually issued): CHANGES REQUIRED (2026-10-21, limited documentation correction on PR #1); corrections submitted, final review pending
-- Current objective: Deliver the Tech Lead-released reversible frontend foundation stage for review.
-- Last confirmed result: `npm run check` passes on Node 24.15.0 (lint clean, 18/18 unit tests, production build with an initial-bundle budget warning); screenshots captured; 65 surfaces classified.
-- Next concrete action: Tech Lead final review of PR #1 corrections; no next feature slice until acceptance and `docs/ui-ux/SURFACE_CLASSIFICATION.md` decisions, then releases the first feature slice.
-- Blocked by / decision owner: Feature slices beyond the foundation are gated by Tech Lead review. Several Agent A aggregate/route-request contracts and all public Agent B tracking/realtime contracts remain unavailable.
+- Implementation progress: READY_FOR_REVIEW (`AGENT_D_AUTHENTICATED_API_INTEGRATION_READY`)
+- Tech Lead review decision (if actually issued): Foundation ACCEPTED (PR #1 merged at `b8e949b`); account/session slice not yet reviewed
+- Current objective: Complete Driver/Operator account and session functionality (sign-out/revocation, verification, recovery, secure persistence, real Agent A integration, role switching, expiry).
+- Last confirmed result: Real Agent A dev API + isolated Mailpit: register, verify, verified login (DRIVER and OPERATOR), refresh on expiry, rotation, logout revocation and server RBAC all passed; 56/56 unit tests; build passes with documented budget warning.
+- Next concrete action: Tech Lead reviews the account/session PR. Owner gates: native device verification of secure-storage restore, Gmail SMTP, and cleanup of three disposable dev accounts.
+- Blocked by / decision owner: Native device test environment (owner); real Gmail SMTP (owner); dual-role provisioning workflow (Agent A). Agent B tracking/realtime contracts remain unavailable.
 - Dependencies / affected agents: Agent A for auth/RBAC/fleet/route/application APIs; Agent B for tracking/latest-state/compliance/realtime; Agent E for Admin-owned route and GPS operations; Agent F for device runbooks; Tech Lead for shared-contract approval and synchronized governance correction.
 
 ## Checklist coverage
 | Checklist ID | Feature / slice | Progress | Evidence (files/tests/PR) | Blocker / next action |
 |---:|---|---|---|---|
-| 38 | Driver Signup / Login / Profile | IN_PROGRESS | Foundation: sign-in, register (Driver mode), role guard, refresh/expiry; specs in `src/app/core/*.spec.ts` | Verify email, password recovery and profile pages remain |
+| 38 | Driver Signup / Login / Profile | IN_PROGRESS | Sign-in/register, verify email, forgot/reset password, Account (server profile, sign-out with revocation), secure refresh-token vault, restore; real Agent A tests in `docs/testing/ACCOUNT_SESSION_INTEGRATION.md` | Profile edit/security (S11/S12), native device verification |
 | 39 | My Jeepney | NOT_STARTED | Driver Home shell with no-assignment state only | Development directive and fleet DTO confirmation required |
 | 40 | Assigned Transit Route & Direction | NOT_STARTED | Planning documentation only | Consume backend effective-route contract when authorized |
 | 41 | Driver Route Guidance Map | NOT_STARTED | Planning documentation only | Development directive and map/tracking contracts required |
@@ -26,7 +26,7 @@
 | 43 | Route Compliance Status & Alert | NOT_STARTED | Planning documentation only | Approved backend compliance contract required |
 | 44 | Same-Group Jeepneys Live Map | NOT_STARTED | Planning documentation only | Scoped REST/realtime contracts required |
 | 45 | Groupmate Status & Details | NOT_STARTED | Planning documentation only | Scoped groupmate contract required |
-| 46 | Operator Signup / Login / Profile | IN_PROGRESS | Foundation: shared sign-in/register (Operator mode), role chooser, role guard | Verify email, password recovery and profile pages remain |
+| 46 | Operator Signup / Login / Profile | IN_PROGRESS | Same shared account/session slice, verified against the real API as OPERATOR | Profile edit/security (S11/S12), native device verification |
 | 47 | Operator Dashboard | NOT_STARTED | Dashboard layout shell; counts shown as unavailable, none computed locally | Aggregate/dashboard contract required |
 | 48 | My Jeepneys, Applications & Details | NOT_STARTED | Planning documentation only | Existing routes identified; feature authorization required |
 | 49 | Driver Management & Assignment | NOT_STARTED | Planning documentation only | Existing fleet routes identified; DTO verification pending |
@@ -54,6 +54,11 @@
 | README documentation-path validation | Documentation | PASSED | 2026-10-21 03:05 +08:00 | All 14 referenced documentation files exist. |
 | Official framework reference review | Online official documentation | PASSED | 2026-10-21 03:00 +08:00 | Reviewed Ionic adaptive UI/navigation/theming/security, Angular guard guidance and Capacitor lifecycle documentation. |
 | Final documentation integrity check | Canonical workspace | PASSED | 2026-10-21 03:06 +08:00 | Tracked `git diff --check` exit 0; all Markdown has zero trailing-whitespace/blank-EOF issues; 14 README doc links resolve; policy identical; zero app artifacts. |
+| Account/session: `npm run check`, `tsc --noEmit` (app+spec), `git diff --check`, `npm audit --omit=dev` | Node 24.15.0 | PASSED (warning) | 2026-10-21 17:45 +08:00 | Lint clean; 8 files / 56 tests; build 911.50 kB initial (budget warning documented); 0 runtime vulnerabilities. |
+| Real Agent A dev API integration | Isolated API `:3001` + isolated Mailpit, app on `:8100`, desktop browser at 375x812 | PASSED | 2026-10-21 17:45 +08:00 | Full table in `docs/testing/ACCOUNT_SESSION_INTEGRATION.md`; screenshots in `docs/evidence/account-session/`. |
+| Valid-link password reset, dual-role switch (real API) | — | NOT_RUN | 2026-10-21 17:45 +08:00 | Reset covered by Agent A's suite and mocked tests; no approved dual-role provisioning workflow. |
+| Native secure-storage restore / device API reachability | Android/iOS device | OWNER_VERIFICATION_PENDING | 2026-10-21 17:45 +08:00 | No native platform build or device in this environment. |
+| Real Gmail SMTP delivery | Owner | OWNER_VERIFICATION_PENDING | 2026-10-21 17:45 +08:00 | Not tested; owner configuration pending. |
 | Bundle investigation (`ng build --stats-json`) | Node 24.15.0 | PASSED (warning retained) | 2026-10-21 05:00 +08:00 | 843.54 kB initial; root cause is the Ionic barrel in eager `app.config.ts`. Subpath-only experiment: 849.72 kB; no-barrel experiment: 516.69 kB. No duplicates, no unused imports. See `docs/architecture/BUNDLE_BUDGET.md`. |
 | Classification recount | Documentation | PASSED | 2026-10-21 05:00 +08:00 | 65 IDs: 39 PAGE (2 A-blocked), 12 COMP, 6 SHEET, 6 GLOBAL, 2 FUTURE. |
 | Typecheck `tsc --noEmit` (app + spec configs) | Node 24.15.0 | PASSED | 2026-10-21 04:26 +08:00 | Both exit 0; templates are typechecked by the strict production build. |
@@ -85,6 +90,43 @@
 - State: OWNER_VERIFICATION_PENDING; not required for documentation recovery.
 
 ## Activity log (newest first; preserve prior entries)
+### 2026-10-21 17:45 +08:00 — Account/session slice with real Agent A integration (AGENT_D_AUTHENTICATED_API_INTEGRATION_READY)
+- Action / reason: Tech Lead released the account/session slice after accepting the foundation (PR #1 merged at `b8e949b`), then approved Mailpit-based authenticated integration.
+- Checklist/issue: Agent D 38, 46 (partial); no issue assigned.
+- Files/config/services affected:
+  - Session: `session.service.ts` (vault persistence, restore, three-way refresh, reloadUser, serialized vault writes) and `token-vault.service.ts` (`@aparajita/capacitor-secure-storage` 8.0.1; device-only, never iCloud, no web persistence).
+  - Requests and routing: `api-error.ts`, `auth.interceptor.ts` (an outage keeps the session), `role.guard.ts` (`guestGuard`, `homeFor`), `app.config.ts` (startup restore), `app.routes.ts`.
+  - Pages: new verify-email, forgot-password, reset-password and shared Account pages; updated sign-in/register/role-chooser.
+  - Config: `proxy.conf.mjs` + `angular.json` (dev proxy), `global.scss`, specs.
+  - Docs: `docs/testing/ACCOUNT_SESSION_INTEGRATION.md`, bundle, classification, README, evidence.
+- Observed result (success/failure/rollback): All real flows listed in the integration doc passed. Bugs found and fixed during testing:
+  - Resend and forgot forms never submitted (`ngSubmit` without `formGroup`).
+  - The user's email was placed in URL query strings; now sent as router state.
+  - The Account profile went stale because Ionic keeps tab pages alive; it now reloads on `ionViewWillEnter`.
+  - The `INVALID_CHALLENGE` message was internal jargon; it is now plain language.
+  - Create account stayed enabled after success.
+- Validation and evidence: Real responses observed:
+  - register 201
+  - EMAIL_NOT_VERIFIED 403
+  - resend 202
+  - verify 200 and invalid 400
+  - forgot 202 and invalid reset 400
+  - login 200 for DRIVER and OPERATOR
+  - `/me` 401, then refresh 200, then retry 200
+  - rotation: old-token reuse 401 SESSION_REVOKED
+  - logout 204, then revoked token 401
+  - Driver token on an OPERATOR endpoint 403, no token 401
+  - Tests: 56/56 unit tests mocked.
+- Contracts / risks / dependencies:
+  - No Agent A/B contract change. Agent A's `valryde-api` checkout was only run, with env overrides, as an isolated instance on `:3001`; it was not modified, migrated or checked out. Agent C's services were not used for authenticated tests and their private scratchpad was not accessed.
+  - Web sessions dropped by a reload remain valid server-side until expiry. This is inherent to memory-only web tokens; native builds persist and revoke.
+  - Bundle grew to 911.50 kB (documented).
+- Commit/PR link or SHA (if available): See PR on `feat/account-session`.
+- Next action / owner gate:
+  - Tech Lead review.
+  - Owner: native device test with a device-reachable API URL, and Gmail SMTP.
+  - Owner/Agent A: delete the disposable accounts `agent-d-it-driver-1021@example.test`, `agent-d-it-operator-1021@example.test` and `agent-d-it-1021a@example.test`. All their sessions are revoked and their passwords rotated to discarded values.
+
 ### 2026-10-21 05:00 +08:00 — Foundation review corrections (AGENT_D_FOUNDATION_CORRECTIONS_READY)
 - Action / reason: Tech Lead review of PR #1 returned CHANGES REQUIRED (limited documentation correction).
 - Checklist/issue: Agent D 38, 46 (foundation); shells 39, 47. None claimed complete.

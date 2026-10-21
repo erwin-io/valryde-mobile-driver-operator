@@ -5,6 +5,7 @@ import { addIcons } from 'ionicons';
 import { busOutline, peopleOutline } from 'ionicons/icons';
 
 import type { MobileRole } from '../core/auth.models';
+import { homeFor } from '../core/role.guard';
 import { SessionService } from '../core/session.service';
 
 @Component({
@@ -43,6 +44,6 @@ export class RoleChooserPage {
 
   protected async choose(role: MobileRole): Promise<void> {
     if (!this.session.selectRole(role)) return;
-    await this.router.navigate([role === 'DRIVER' ? '/driver/home' : '/operator/dashboard']);
+    await this.router.navigate([homeFor(role)], { replaceUrl: true });
   }
 }

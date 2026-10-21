@@ -1,4 +1,3 @@
-import { HttpErrorResponse } from '@angular/common/http';
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { RouterLink } from '@angular/router';
@@ -19,7 +18,8 @@ import {
 } from '@ionic/angular';
 import { firstValueFrom } from 'rxjs';
 
-import type { ApiErrorEnvelope, MobileRole } from '../core/auth.models';
+import { apiErrorMessage } from '../core/api-error';
+import type { MobileRole } from '../core/auth.models';
 import { AuthApiService } from '../core/auth-api.service';
 
 @Component({
@@ -67,7 +67,12 @@ import { AuthApiService } from '../core/auth-api.service';
           </ion-list>
           <p class="password-rule">Use 12–128 characters.</p>
           @if (message()) { <ion-note [color]="success() ? 'success' : 'danger'" role="status">{{ message() }}</ion-note> }
-          <ion-button type="submit" expand="block" size="large" [disabled]="submitting()">Create account</ion-button>
+          @if (success()) {
+            <ion-button type="button" fill="outline" expand="block" routerLink="/auth/verify-email" [state]="{ email: form.controls.email.value }">
+              Didn't get the email?
+            </ion-button>
+          }
+          <ion-button type="submit" expand="block" size="large" [disabled]="submitting() || success()">Create account</ion-button>
           <ion-button type="button" fill="clear" expand="block" routerLink="/auth/sign-in">Back to sign in</ion-button>
         </form>
       </main>
@@ -110,8 +115,7 @@ export class RegisterPage {
       this.form.disable();
     } catch (error: unknown) {
       this.success.set(false);
-      const body = error instanceof HttpErrorResponse ? (error.error as Partial<ApiErrorEnvelope>) : null;
-      this.message.set(body?.error?.message ?? 'Registration failed. Check your details and try again.');
+      this.message.set(apiErrorMessage(error, 'Registration failed. Check your details and try again.'));
     } finally {
       this.submitting.set(false);
     }

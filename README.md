@@ -59,6 +59,7 @@ Versions are pinned exactly in `package.json` and locked by `package-lock.json`.
 - `docs/testing/SCREEN_AND_USER_FLOW_ACCEPTANCE_CRITERIA.md`
 - `docs/ui-ux/SURFACE_CLASSIFICATION.md`
 - `docs/architecture/BUNDLE_BUDGET.md`
+- `docs/testing/ACCOUNT_SESSION_INTEGRATION.md`
 - `docs/evidence/frontend-foundation/` (screenshot evidence)
 
 ## Directive deliverable mapping
@@ -88,4 +89,6 @@ npm run check   # lint, unit tests, production build
 npm start       # dev server; /foundation/driver and /foundation/operator preview role homes (development only)
 ```
 
-The app calls the API at `/api` (`src/environments`). No backend proxy is configured yet, so sign-in reports the service as unavailable during local preview. Before future work, read `AGENTS.md`, the handoff, reporting policy, status file and applicable documentation.
+The app calls the API at `/api` (`src/environments`). `npm start` proxies `/api` to the Agent A dev API at `http://127.0.0.1:3000` (`proxy.conf.mjs`); set `VALRYDE_API_URL` to target another instance. Agent A's CORS allows `http://localhost:4200` and `http://localhost:8100`, and its email links must point at the origin you serve.
+
+Sessions: access tokens stay in memory. On native builds only the refresh token is persisted, in OS-backed secure storage (iOS Keychain `whenUnlockedThisDeviceOnly`, never iCloud-synced; Android KeyStore AES-GCM) via `@aparajita/capacitor-secure-storage`. Browsers persist nothing, so a reload signs out. Native builds additionally need a device-reachable API base URL; see `docs/testing/ACCOUNT_SESSION_INTEGRATION.md`. Before future work, read `AGENTS.md`, the handoff, reporting policy, status file and applicable documentation.
