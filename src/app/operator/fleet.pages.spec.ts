@@ -507,7 +507,7 @@ describe('Operator fleet pages', () => {
 
     it('shows the no-assignment state for a Driver without jeepneys', async () => {
       api.listJeepneys.mockReturnValue(of([]));
-      expect((await render(DriverHomePage)).text()).toContain('No assigned jeepney');
+      expect((await render(DriverHomePage)).text()).toContain('No authorized jeepney');
     });
   });
 

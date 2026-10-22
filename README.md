@@ -13,7 +13,7 @@ Do not initialize a replacement repository, clone over this workspace, or commit
 
 ## Current state
 
-The Tech Lead authorized the D6–D11 Driver/Fleet Expansion release on 2026-10-22. D6/D7 static authorized-route/map work is in PR #6. D8–D10 Driver directory, assignment, partial group membership and Driver counts are prepared against Agent A's approved G1 contract; live integration remains gated until API PR #12 merges. D11 remains gated until fixture PR #15 merges.
+The frontend foundation and D1–D7 are merged, including the Driver authorized-vehicle route/direction detail, static official MapLibre geometry and Android Capacitor platform. D8–D10 Driver directory, assignment, partial group membership and Driver counts are in PR #7 against Agent A's approved G1 contract; live integration remains gated until API PR #12 merges. D11 remains gated until fixture PR #15 merges.
 
 ## Ownership
 
@@ -88,8 +88,11 @@ Requires Node `24.15.0` (see `.nvmrc`; Angular CLI 22 needs `^22.22.3` or `>=24.
 npm ci
 npm run check   # lint, unit tests, production build
 npm start       # dev server; /foundation/driver and /foundation/operator preview role homes (development only)
+npm run cap:sync
 ```
 
 The app calls the API at `/api` (`src/environments`). `npm start` proxies `/api` to the Agent A dev API at `http://127.0.0.1:3000` (`proxy.conf.mjs`); set `VALRYDE_API_URL` to target another instance. Agent A's CORS allows `http://localhost:4200` and `http://localhost:8100`, and its email links must point at the origin you serve.
 
 Sessions: access tokens stay in memory. On native builds only the refresh token is persisted, in OS-backed secure storage (iOS Keychain `whenUnlockedThisDeviceOnly`, never iCloud-synced; Android KeyStore AES-GCM) via `@aparajita/capacitor-secure-storage`. Browsers persist nothing, so a reload signs out. Native builds additionally need a device-reachable API base URL; see `docs/testing/ACCOUNT_SESSION_INTEGRATION.md`. Before future work, read `AGENTS.md`, the handoff, reporting policy, status file and applicable documentation.
+
+For an Android debug build, use JDK 21 and the installed Android SDK, run `npm run build`, `npm run cap:sync`, then `android\gradlew.bat assembleDebug`. The repository does not commit machine-local SDK paths. A successful APK build is not device/API integration evidence.

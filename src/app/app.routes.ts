@@ -53,7 +53,7 @@ export const routes: Routes = [
     children: [
       { path: '', pathMatch: 'full', redirectTo: 'home' },
       { path: 'home', loadComponent: () => import('./driver/driver-home.page').then((module) => module.DriverHomePage) },
-      { path: 'map', data: placeholder('Route Map', 'Tracking contract required', 'Map shell implementation waits for Agent B client-safe latest-state and realtime contracts.'), loadComponent: () => import('./shared/placeholder-page.component').then((module) => module.PlaceholderPageComponent) },
+      { path: 'map', loadComponent: () => import('./driver/driver-route-map.page').then((module) => module.DriverRouteMapPage) },
       { path: 'group', data: placeholder('Group', 'Group scope not loaded', 'Same-group details require an approved server-scoped contract.'), loadComponent: () => import('./shared/placeholder-page.component').then((module) => module.PlaceholderPageComponent) },
       { path: 'events', data: placeholder('Events', 'Event contract required', 'Compliance history and events remain an Agent B integration gate.'), loadComponent: () => import('./shared/placeholder-page.component').then((module) => module.PlaceholderPageComponent) },
       ...accountRoutes,

@@ -4,7 +4,7 @@ const angular = require('angular-eslint');
 
 module.exports = tseslint.config(
   {
-    ignores: ['dist/**', 'node_modules/**', 'www/**'],
+    ignores: ['android/.gradle/**', 'android/**/build/**', 'dist/**', 'node_modules/**', 'www/**'],
   },
   {
     files: ['**/*.ts'],

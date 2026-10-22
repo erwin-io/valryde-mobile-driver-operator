@@ -64,7 +64,7 @@ Do not implement or describe as approved MVP scope:
 
 ## 6. Development workflow
 
-The Tech Lead authorized the Agent D D6–D11 Driver/Fleet Expansion release on 2026-10-22. D6/D7 is in PR #6. D8–D10 is under review preparation on `feat/49-50-driver-group-management`, using Agent A's approved G1 DTO while implementation PR #12 remains unmerged. D11 must wait for fixture PR #15 to merge. G2/G3/G4 and Agent B tracking remain explicit gates. Toolchain: Node `24.15.0` (`.nvmrc`), Angular 22, Ionic 9, Capacitor 8; run `npm run check`.
+The frontend foundation and D1–D7 are merged. The Tech Lead authorized the D6–D11 Driver/Fleet Expansion under a temporary Codex takeover on 2026-10-22. D8–D10 is in PR #7 on `feat/49-50-driver-group-management`, using Agent A's approved G1 DTO while implementation PR #12 remains unmerged. D11 must wait for fixture PR #15 to merge. G2/G3/G4 and Agent B tracking remain explicit gates. Toolchain: Node `24.15.0` (`.nvmrc`), Angular 22, Ionic 9, Capacitor 8; run `npm run check`.
 
 For an authorized feature slice:
 
