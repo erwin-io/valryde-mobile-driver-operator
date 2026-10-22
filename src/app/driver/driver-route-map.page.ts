@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, inject, signal, type OnInit } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, signal, type OnDestroy, type OnInit } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import {
   IonButton,
@@ -153,7 +153,7 @@ type RouteState = 'choose' | 'loading' | 'ready' | 'none' | 'inactive' | 'confli
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class DriverRouteMapPage implements OnInit {
+export class DriverRouteMapPage implements OnInit, OnDestroy {
   private readonly api = inject(FleetApiService);
   private readonly activatedRoute = inject(ActivatedRoute);
   private loadEpoch = 0;
@@ -175,6 +175,10 @@ export class DriverRouteMapPage implements OnInit {
 
   ngOnInit(): void {
     void this.loadVehicles();
+  }
+
+  ngOnDestroy(): void {
+    ++this.loadEpoch;
   }
 
   ionViewWillEnter(): void {

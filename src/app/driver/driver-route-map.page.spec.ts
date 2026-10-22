@@ -2,7 +2,7 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { TestBed } from '@angular/core/testing';
 import { ActivatedRoute, convertToParamMap, provideRouter } from '@angular/router';
 import type { Map as MapLibreMap } from 'maplibre-gl';
-import { of, throwError } from 'rxjs';
+import { of, Subject, throwError } from 'rxjs';
 
 import { FleetApiService } from '../core/fleet-api.service';
 import type { EffectiveRouteDirection, Jeepney, TransitRoute } from '../core/fleet.models';
@@ -176,5 +176,43 @@ describe('DriverRouteMapPage (D03/D04)', () => {
     const { text } = await render();
     expect(text()).toContain('VALRYDE is unavailable right now');
     expect(text()).not.toContain('Carbon – Lahug');
+  });
+
+  it('ignores a stale route response after the Driver chooses another authorized vehicle', async () => {
+    const firstRoute = new Subject<EffectiveRouteDirection | null>();
+    const first = jeepney();
+    const second = jeepney({ id: 'j-2', plateNo: 'XYZ 789' });
+    api.listJeepneys.mockReturnValue(of([first, second]));
+    api.effectiveRoute.mockImplementation((id: string) => (id === first.id ? firstRoute : of(effective())));
+    const { fixture, settle, text } = await render();
+    const page = fixture.componentInstance as unknown as { selectVehicle(vehicle: Jeepney): Promise<void> };
+    const stale = page.selectVehicle(first);
+    await page.selectVehicle(second);
+    firstRoute.next(effective({ direction: { ...effective().direction, originName: 'Stale origin' } }));
+    firstRoute.complete();
+    await stale;
+    await settle();
+    expect(text()).toContain('XYZ 789');
+    expect(text()).toContain('Carbon – Lahug');
+    expect(text()).not.toContain('Stale origin');
+  });
+
+  it('makes a pending route response inert when the page is destroyed', async () => {
+    const { fixture } = await render();
+    api.getRoute.mockClear();
+    const pendingRoute = new Subject<EffectiveRouteDirection | null>();
+    api.effectiveRoute.mockReturnValue(pendingRoute);
+    const page = fixture.componentInstance as unknown as {
+      selectVehicle(vehicle: Jeepney): Promise<void>;
+      state(): string;
+    };
+    const pending = page.selectVehicle(jeepney());
+    expect(page.state()).toBe('loading');
+    fixture.destroy();
+    pendingRoute.next(effective());
+    pendingRoute.complete();
+    await pending;
+    expect(page.state()).toBe('loading');
+    expect(api.getRoute).not.toHaveBeenCalled();
   });
 });

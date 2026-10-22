@@ -2,8 +2,8 @@ import { HttpErrorResponse } from '@angular/common/http';
 
 import type { ApiErrorEnvelope } from './auth.models';
 
-// Agent A declares these client-error statuses on every auth route; anything else is an outage.
-const CLIENT_ERRORS = [400, 401, 403, 409];
+// Preserve actionable Agent A client errors; treat transport/server statuses as outages.
+const CLIENT_ERRORS = [400, 401, 403, 404, 409];
 
 export const isClientError = (error: unknown): error is HttpErrorResponse =>
   error instanceof HttpErrorResponse && CLIENT_ERRORS.includes(error.status);

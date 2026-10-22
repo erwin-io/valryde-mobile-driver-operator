@@ -1,24 +1,24 @@
 # VALRYDE — Agent D Status
 
 ## Current snapshot
-- Updated at (ISO 8601, Asia/Manila): 2026-10-22T12:08:03+08:00
+- Updated at (ISO 8601, Asia/Manila): 2026-10-22T13:33:00+08:00
 - Agent / module: D — Driver/Operator Mobile
 - Repository: `valryde-mobile-driver-operator`
-- Branch / implementation SHA: `feat/49-50-driver-group-management`; normal reconciliation merge `c48f5174c7702d0f50f5a833c7ea3d8560470066` with parents `54666ba` and `1f9d6cc`.
-- GitHub issues / PRs: PRs #1–#6 merged. D8–D10 PR #7 is open, mergeable and GitGuardian-clean after reconciliation. Agent A G1 PR #12 and fixture PR #15 remain open/green.
+- Branch / implementation SHA: `feat/agent-d-independent-ui-closure`; based on merged `origin/main` at `c8d0580e69dabbd28799737e01c84ead93ad5884` (includes PR #7).
+- GitHub issues / PRs: Mobile PRs #1–#7 merged. Agent A G1 PR #12 and fixture PR #15 remain open/green.
 - Checklist IDs: 38–55
-- Implementation progress: D6/D7 merged; D8–D10 implementation and deterministic tests complete; D11 BLOCKED_BY_FIXTURE_PR_15.
-- Tech Lead review decision (if actually issued): D6/D7 accepted through merged PR #6; PR #7 not accepted or merged.
-- Current objective: Await Agent G/Tech Lead review of reconciled PR #7; do not self-merge.
-- Last confirmed result: Lint and both TypeScript projects passed; 13 files / 170 tests passed; production build 922.46 kB warning only; runtime audit clean; full audit has five development-tooling findings; diff hygiene passed.
-- Next concrete action: Agent G/Tech Lead reviews PR #7. D11 remains gated on Agent A fixture PR #15.
+- Implementation progress: All independently deliverable UI behavior and deterministic coverage for IDs 38–55 complete; D11 remains `BLOCKED_BY_AGENT_A_PR_15`; live G1 remains gated on Agent A PR #12.
+- Tech Lead review decision (if actually issued): Final independent UI closure authorized; no approval to self-merge.
+- Current objective: Submit the independent closure branch for Tech Lead review; do not self-merge.
+- Last confirmed result: Lint and both TypeScript projects passed; 16 files / 205 tests passed; production build 922.47 kB warning only; Capacitor doctor/sync, Android lint/unit tests/debug APK passed; runtime audit clean; full audit has five development-tooling findings; diff hygiene passed.
+- Next concrete action: Tech Lead reviews the corrective PR. After Agent A PR #15 merges, seed an identified isolated fixture database and run the prepared D11 harness; never use a shared database.
 - Blocked by / decision owner: Agent A PR #12 merge/deploy for live G1; PR #15 merge for D11 fixtures; G2 membership read/removal; G3 assignment marker; G4 unassign; Agent B tracking; owner: physical device testing.
 - Dependencies / affected agents: Agent A for auth/RBAC/fleet/route/application APIs; Agent B for tracking/latest-state/compliance/realtime; Agent E for Admin-owned route and GPS operations; Agent F for device runbooks; Tech Lead for shared-contract approval and synchronized governance correction.
 
 ## Checklist coverage
 | Checklist ID | Feature / slice | Progress | Evidence (files/tests/PR) | Blocker / next action |
 |---:|---|---|---|---|
-| 38 | Driver Signup / Login / Profile | IN_PROGRESS (D1 READY_FOR_REVIEW) | Sign-in/register, verify email, forgot/reset password, Account (server profile, sign-out with revocation), secure refresh-token vault, restore; real Agent A tests in `docs/testing/ACCOUNT_SESSION_INTEGRATION.md` | Profile edit/security (S11/S12), native device verification |
+| 38 | Driver Signup / Login / Profile | INDEPENDENT_SCOPE_COMPLETE | Sign-in/register, verify/recovery/email/password flows, Account, revoked/disabled handling, role navigation, secure refresh-token vault/restore and race coverage; real Agent A evidence in `docs/testing/ACCOUNT_SESSION_INTEGRATION.md` | Native device/SMTP verification |
 | 39 | My Jeepney | IN_PROGRESS (static) | Driver home lists accessible jeepneys + server route summary | Active-assignment marker G3 |
 | 40 | Assigned Transit Route & Direction | MERGED (D6) | Authorized vehicle selection, server-resolved DIRECT/GROUP route identity/direction/endpoints and explicit no-route/conflict/inactive/error states; `docs/testing/DRIVER_ROUTE_MAP.md` | G3 still gates active Driver vehicle identification |
 | 41 | Driver Route Guidance Map | MERGED (D7 STATIC) | Lazy MapLibre official LineString/color/endpoints, camera fit/recenter, geometry validation and cleanup; deterministic tests + Android build | Device/WebView smoke owner-gated; live GPS/tracking remains Agent B |
@@ -26,7 +26,7 @@
 | 43 | Route Compliance Status & Alert | NOT_STARTED | Planning documentation only | Approved backend compliance contract required |
 | 44 | Same-Group Jeepneys Live Map | NOT_STARTED | Planning documentation only | Scoped REST/realtime contracts required |
 | 45 | Groupmate Status & Details | NOT_STARTED | Planning documentation only | Scoped groupmate contract required |
-| 46 | Operator Signup / Login / Profile | IN_PROGRESS (D1 READY_FOR_REVIEW) | Same shared account/session slice, verified against the real API as OPERATOR | Profile edit/security (S11/S12), native device verification |
+| 46 | Operator Signup / Login / Profile | INDEPENDENT_SCOPE_COMPLETE | Same shared account/session slice and role-adaptive navigation, verified against the real API as OPERATOR | Native device/SMTP verification |
 | 47 | Operator Dashboard | READY_FOR_REVIEW (D10 partial) | Existing counts preserved; G1 pagination total supplies Driver count with independent failure handling | Live G1 pass awaits PR #12; tracking tiles Agent B |
 | 48 | My Jeepneys, Applications & Details | IN_PROGRESS (D2 READY_FOR_REVIEW) | Jeepney list/create/edit/detail, application submit/status, effective route; `docs/testing/OPERATOR_FLEET_INTEGRATION.md` | GPS section (D4); driver assignment gated on G1 |
 | 49 | Driver Management & Assignment | READY_FOR_REVIEW (D8) | Scoped directory/search/pagination, eligibility, current assignment, explicit confirmation, `driverId` mutation tests | Live G1 pass awaits Agent A PR #12 merge/deploy; G4 unassign absent |
@@ -40,6 +40,17 @@
 ## Latest verification
 | Command / check | Environment | Result | Date/time | Evidence / notes |
 |---|---|---|---|---|
+| Independent closure `npm run lint` | Node 24.19.0 | PASSED | 2026-10-22 13:28 +08:00 | ESLint exit 0, zero warnings, including the D11 harness. |
+| Independent closure TypeScript projects | TypeScript 6.0.3 | PASSED | 2026-10-22 13:29 +08:00 | `tsc -p tsconfig.app.json --noEmit` and `tsc -p tsconfig.spec.json --noEmit` both exit 0. |
+| Independent closure complete automated suite | Angular/Vitest | PASSED | 2026-10-22 13:40 +08:00 | Final: 16 files, 205 tests. Includes role-entry, API 404, map lifecycle/page cancellation, stale loads and mutation serialization. An intermediate rerun exposed two test-isolation assertions; the mutable native-platform flag and prior mock call were reset, then the complete suite passed. |
+| Independent closure production build | Angular 22.2.3 | PASSED (warning) | 2026-10-22 13:28 +08:00 | Initial bundle 922.47 kB; unchanged 700 kB warning and below 1 MB error budget; MapLibre remains lazy at 1.05 MB. |
+| D11 harness syntax / safety refusal | Node 24.19.0 | PASSED / BLOCKED | 2026-10-22 13:28 +08:00 | `node --check` passed. Unconfigured `npm run test:business` refused before network access as designed. Live run not attempted because Agent A PR #15 is open. |
+| `npm run cap:sync -- android`; `npx cap doctor android` | Capacitor 8.5.3 | PASSED | 2026-10-22 13:45 +08:00 | Final production assets copied; secure-storage 8.0.1 and App 8.0.1 plugins detected; doctor reports Android healthy. |
+| Android `lintDebug testDebugUnitTest assembleDebug` | Gradle 8.14.3; JDK 21.0.6; SDK compile/target 36, min 24 | PASSED | 2026-10-22 13:46 +08:00 | Final integrated assets: 232 tasks; lint clean; app unit tests passed; standard `flatDir` warning only. First invocation lacked `ANDROID_HOME`, then reran with the installed SDK path and passed. |
+| Android debug APK | Android debug build | PASSED | 2026-10-22 13:46 +08:00 | Final integrated APK: 5,081,750 bytes; SHA-256 `EEF1F8A66FDFCB03B593F04E3848D6353E4494DF452560C889267E45842A97C5`. |
+| Android device inventory | ADB 35.0.1 | OWNER_VERIFICATION_PENDING | 2026-10-22 13:32 +08:00 | `adb devices -l` returned no device/emulator; no device acceptance claimed. |
+| Independent closure dependency audit | npm 10.9.1 | PASSED runtime / 5 development findings | 2026-10-22 13:32 +08:00 | Production dependency audit has zero vulnerabilities. Full lockfile: 1 low, 3 moderate, 1 high in Vite/Capacitor CLI toolchains; proposed npm fixes downgrade direct packages and were not forced. |
+| Agent A gate recheck | GitHub | BLOCKED (expected) | 2026-10-22 13:27 +08:00 | G1 PR #12 and fixture PR #15 are both OPEN/MERGEABLE; heads `92ad34158e1c9fe840b7264b4c3912aec5eeb25b` and `be8d6d038d6f60e168684c28a3a057f78cbf6e89`. |
 | PR #7 push / GitHub state | GitHub | PASSED | 2026-10-22 12:09 +08:00 | Normal two-parent merge pushed without force; PR open, mergeable and GitGuardian passed. `1f9d6cc` is an ancestor of the branch. |
 | PR #7 post-merge `npm run lint` | Node 24.19.0 | PASSED | 2026-10-22 11:53 +08:00 | ESLint exit 0 after D6/D7 + D8–D10 reconciliation. |
 | `tsc -p tsconfig.app.json --noEmit`; `tsc -p tsconfig.spec.json --noEmit` | TypeScript 6.0.3 | PASSED | 2026-10-22 11:52 +08:00 | Both strict app and test projects passed. |
@@ -116,6 +127,16 @@
 - State: OWNER_VERIFICATION_PENDING; not required for documentation recovery.
 
 ## Activity log (newest first; preserve prior entries)
+### 2026-10-22 13:33 +08:00 — Final independent UI closure (`AGENT_D_UI_INDEPENDENT_SCOPE_COMPLETE`)
+- Action / reason: Audited every Agent D ID against the latest merged main including PR #7, closed independent error/race/test gaps, prepared a fail-closed D11 executable, and rebuilt Android.
+- Checklist/issue: IDs 38–55; packages D1–D5.
+- Files/config/services affected: Shared 404 handling; stale-load epochs for dashboard/fleet lists/details; auth/MapLibre/fleet deterministic tests; `scripts/business-integration.mjs`; independent-scope and D11 test documentation; package test command; this status file. No backend or Agent B repository changed.
+- Observed result (success/failure/rollback): All independent client behavior is complete. D11 correctly remains blocked rather than being run against an unidentified database. No live GPS, assignment marker, membership removal, unassign or route-change contract was fabricated.
+- Validation and evidence: Lint, two strict TypeScript projects, 16 files/205 tests, production build, Capacitor sync/doctor, Android lint/unit tests/debug APK, runtime audit and diff check passed. APK evidence and development-only audit findings are recorded above.
+- Contracts / risks / dependencies: Exact G1/G2/G3/G4/G7, Agent B, fixture, Admin-data and owner-device gates are in `docs/testing/AGENT_D_INDEPENDENT_SCOPE_AUDIT.md`.
+- Commit/PR link or SHA (if available): Corrective branch `feat/agent-d-independent-ui-closure`; PR/HEAD recorded after push.
+- Next action / owner gate: Tech Lead reviews the corrective PR. Owner runs the listed physical-device tests. Agent A PR #15 must merge before D11 seed/verify/test/cleanup on an isolated local database.
+
 ### 2026-10-22 12:08 +08:00 — PR #7 reconciled with merged D6/D7 (`AGENT_D_PR7_POST_MERGE_RECONCILED`)
 - Action / reason: Agent G directed a normal merge of PR #6's merged `main` (`1f9d6cc`) into existing PR #7 without force-pushing.
 - Checklist/issue: 40–41 and 47/49/50 coexistence; PR #7 integration.

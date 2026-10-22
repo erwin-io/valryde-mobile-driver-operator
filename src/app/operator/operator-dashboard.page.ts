@@ -78,6 +78,7 @@ import { StatePanelComponent } from '../shared/state-panel.component';
 export class OperatorDashboardPage implements OnInit {
   private readonly api = inject(FleetApiService);
   private entered = false;
+  private loadEpoch = 0;
   readonly foundationPreview = input(false);
   protected readonly counts = signal<{ jeepneys: number | null; active: number | null; pending: number | null; groups: number | null; drivers: number | null } | null>(null);
   protected readonly managementItems = [
@@ -97,11 +98,13 @@ export class OperatorDashboardPage implements OnInit {
 
   /** Plain counts over the Operator-scoped lists; no tracking state is inferred. */
   protected async load(): Promise<void> {
+    const epoch = ++this.loadEpoch;
     const [jeepneys, groups, drivers] = await Promise.allSettled([
       firstValueFrom(this.api.listJeepneys()),
       firstValueFrom(this.api.listGroups()),
       firstValueFrom(this.api.listDrivers({ page: 1, pageSize: 1 })),
     ]);
+    if (epoch !== this.loadEpoch) return;
     if (jeepneys.status === 'rejected' && groups.status === 'rejected' && drivers.status === 'rejected') {
       this.counts.set(null);
       return;

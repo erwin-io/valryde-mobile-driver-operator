@@ -7,6 +7,7 @@
     "start": "ng serve",
     "build": "ng build",
     "test": "ng test --watch=false",
+    "test:business": "node scripts/business-integration.mjs",
     "lint": "eslint . --max-warnings=0",
     "check": "npm run lint && npm run test && npm run build",
     "cap:sync": "cap sync"
