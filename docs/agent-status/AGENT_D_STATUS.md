@@ -4,7 +4,7 @@
 - Updated at (ISO 8601, Asia/Manila): 2026-10-22T10:33:30+08:00
 - Agent / module: D — Driver/Operator Mobile
 - Repository: `valryde-mobile-driver-operator`
-- Branch / HEAD SHA: `feat/49-50-driver-group-management` @ `db3ea3b` from canonical `main` @ `f0f57bb`.
+- Branch / implementation SHA: `feat/49-50-driver-group-management` implementation `db3ea3b`; recorded pre-status HEAD `cfd7d21`; base `main` @ `f0f57bb`.
 - GitHub issues / PRs: PRs #1–#5 merged. D6/D7 is open in PR #6. D8–D10 is open and mergeable in PR #7. Agent A G1 PR #12 and fixture PR #15 remain open/green.
 - Checklist IDs: 38–55
 - Implementation progress: D6/D7 READY_FOR_REVIEW in PR #6; D8–D10 implementation and deterministic tests complete, PR preparation active; D11 BLOCKED_BY_FIXTURE_PR_15.
@@ -45,7 +45,7 @@
 | D8–D10 `npm run lint` | Node project toolchain | PASSED | 2026-10-22 10:31 +08:00 | ESLint exit 0, zero warnings. |
 | D8–D10 `npm run test` | Angular/Vitest | PASSED | 2026-10-22 10:32 +08:00 | 11 files, 155 tests. First run had two assertion-only mismatches; corrected and rerun green. |
 | D8–D10 `npm run build` | Angular production build | PASSED (warning) | 2026-10-22 10:32 +08:00 | Initial bundle 920.96 kB; existing 700 kB warning, below 1 MB error budget. |
-| D8–D10 `git diff --check` | Canonical workspace | PASSED | 2026-10-22 10:33 +08:00 | Exit 0. |
+| D8–D10 `git diff --check main...HEAD` | Canonical workspace | PASSED | 2026-10-22 10:36 +08:00 | Final PR-range check found two Markdown hard-break spaces and one extra EOF line in the new test note; normalized in `cfd7d21`, then exit 0. |
 | `git status --short --branch` | Canonical workspace before recovery | PASSED | 2026-10-21 02:48 +08:00 | Clean `main...origin/main` before edits. |
 | `git remote -v` | Canonical workspace | PASSED | 2026-10-21 02:48 +08:00 | Fetch/push both use expected GitHub `.git` URL. |
 | Branch and HEAD inspection | Canonical workspace | PASSED | 2026-10-21 02:53 +08:00 | Focused branch created from `main` at `ab49017d...`. |
