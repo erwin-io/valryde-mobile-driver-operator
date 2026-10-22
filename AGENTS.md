@@ -64,7 +64,7 @@ Do not implement or describe as approved MVP scope:
 
 ## 6. Development workflow
 
-The Tech Lead authorized the Agent D development directive on 2026-10-21. `UX_CONTRACT_READY` was reported (detailed UX acceptance pending), and the Tech Lead then released the reversible **frontend foundation** stage: scaffold, shared shell, DRIVER/OPERATOR route groups, the authentication UI/adapter against verified Agent A contracts, reusable components, theme tokens, loading/empty/error/offline states, initial role home layouts, unit tests and build checks. Feature slices beyond the foundation require the next release. Toolchain: Node `24.15.0` (`.nvmrc`), Angular 22, Ionic 9, Capacitor 8; run `npm run check`.
+The Tech Lead authorized the Agent D development directive on 2026-10-21. The frontend foundation and D1–D5 independent UI batch are merged. On 2026-10-22 the Tech Lead authorized the D6–D11 Driver/Fleet Expansion under a temporary Codex takeover. Continue the focused feature branches and contract gates recorded in the handoff and status file; do not restart merged work or treat an open Agent A PR as a production contract. Toolchain: Node `24.15.0` (`.nvmrc`), Angular 22, Ionic 9, Capacitor 8; run `npm run check`.
 
 After Tech Lead review releases the implementation checkpoint:
 

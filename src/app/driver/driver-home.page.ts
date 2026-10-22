@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, inject, input, type OnInit, signal } from '@angular/core';
+import { RouterLink } from '@angular/router';
 import { IonButton, IonContent, IonHeader, IonIcon, IonItem, IonLabel, IonList, IonTitle, IonToolbar } from '@ionic/angular';
 import { addIcons } from 'ionicons';
 import { busOutline, pulseOutline, warningOutline } from 'ionicons/icons';
@@ -15,7 +16,7 @@ import { StatusPillComponent } from '../shared/status-pill.component';
 @Component({
   selector: 'app-driver-home-page',
   standalone: true,
-  imports: [IonButton, IonContent, IonHeader, IonIcon, IonItem, IonLabel, IonList, IonTitle, IonToolbar, StatePanelComponent, StatusPillComponent],
+  imports: [IonButton, IonContent, IonHeader, IonIcon, IonItem, IonLabel, IonList, IonTitle, IonToolbar, RouterLink, StatePanelComponent, StatusPillComponent],
   template: `
     <ion-header class="ion-no-border"><ion-toolbar><ion-title>Driver Home</ion-title></ion-toolbar></ion-header>
     <ion-content class="page-content">
@@ -24,16 +25,16 @@ import { StatusPillComponent } from '../shared/status-pill.component';
       }
       <main class="page-stack">
         <section class="welcome-block">
-          <p class="eyebrow">CURRENT ASSIGNMENT</p>
-          <h1>Ready when your assignment is</h1>
-          <p>Your operator-assigned jeepney, effective route and tracker status will appear here.</p>
+          <p class="eyebrow">DRIVER ACCESS</p>
+          <h1>Your authorized vehicles</h1>
+          <p>Review server-authorized jeepneys and their effective routes. Active assignment confirmation is not available yet.</p>
         </section>
 
         @if (vehicles() === null || vehicles()!.length === 0) {
           <app-state-panel
             panelId="driver-assignment"
             icon="bus-outline"
-            [title]="loadFailed() ? 'Jeepneys unavailable' : 'No assigned jeepney'"
+            [title]="loadFailed() ? 'Jeepneys unavailable' : 'No authorized jeepney'"
             [message]="loadFailed() ? 'Your jeepneys could not be loaded. Check your connection and try again.' : 'An authorized operator must associate your account and assign an eligible jeepney.'"
             [actionLabel]="loadFailed() ? 'Try again' : undefined"
             (action)="load()"
@@ -44,7 +45,7 @@ import { StatusPillComponent } from '../shared/status-pill.component';
             <p class="supporting-text">VALRYDE doesn't yet show which one you are assigned to today.</p>
             <ion-list inset="true">
               @for (v of vehicles(); track v.jeepney.id) {
-                <ion-item>
+                <ion-item [routerLink]="foundationPreview() ? undefined : '/driver/map'" [queryParams]="foundationPreview() ? undefined : { jeepneyId: v.jeepney.id }" [detail]="!foundationPreview()">
                   <span slot="start" class="swatch" [style.background]="v.jeepney.colorHex" aria-hidden="true"></span>
                   <ion-label class="ion-text-wrap">
                     <h2>{{ v.jeepney.plateNo }}</h2>
@@ -70,7 +71,7 @@ import { StatusPillComponent } from '../shared/status-pill.component';
           </ion-list>
         </section>
 
-        <ion-button expand="block" size="large" disabled="true">Open route map</ion-button>
+        <ion-button expand="block" size="large" routerLink="/driver/map" [disabled]="foundationPreview()">Open authorized route map</ion-button>
       </main>
     </ion-content>
   `,
