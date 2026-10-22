@@ -1,18 +1,18 @@
 # VALRYDE — Agent D Status
 
 ## Current snapshot
-- Updated at (ISO 8601, Asia/Manila): 2026-10-22T13:33:00+08:00
+- Updated at (ISO 8601, Asia/Manila): 2026-10-22T16:17T:00+08:00
 - Agent / module: D — Driver/Operator Mobile
 - Repository: `valryde-mobile-driver-operator`
 - Branch / implementation SHA: `feat/agent-d-independent-ui-closure`; implementation commit `51c56a6ddbe0ee0d0b874b7549748b4247d53fd8`; based on merged `origin/main` at `c8d0580e69dabbd28799737e01c84ead93ad5884` (includes PR #7).
 - GitHub issues / PRs: Mobile PRs #1–#7 merged; corrective PR #8 open for review. Agent A G1 PR #12 and fixture PR #15 remain open/green.
 - Checklist IDs: 38–55
-- Implementation progress: All independently deliverable UI behavior and deterministic coverage for IDs 38–55 complete; D11 remains `BLOCKED_BY_AGENT_A_PR_15`; live G1 remains gated on Agent A PR #12.
-- Tech Lead review decision (if actually issued): Final independent UI closure authorized; no approval to self-merge.
-- Current objective: Submit the independent closure branch for Tech Lead review; do not self-merge.
-- Last confirmed result: Lint and both TypeScript projects passed; 16 files / 205 tests passed; production build 922.47 kB warning only; Capacitor doctor/sync, Android lint/unit tests/debug APK passed; runtime audit clean; full audit has five development-tooling findings; diff hygiene passed.
-- Next concrete action: Tech Lead reviews the corrective PR. After Agent A PR #15 merges, seed an identified isolated fixture database and run the prepared D11 harness; never use a shared database.
-- Blocked by / decision owner: Agent A PR #12 merge/deploy for live G1; PR #15 merge for D11 fixtures; G2 membership read/removal; G3 assignment marker; G4 unassign; Agent B tracking; owner: physical device testing.
+- Implementation progress: All independently deliverable UI behavior and deterministic coverage for IDs 38–55 complete; D11 reads remain `BLOCKED_BY_AGENT_A_PR_15`; D11 business mutation probes are additionally fixture-blocked until Agent A approves a trustworthy runtime isolation attestation; live G1 remains gated on Agent A PR #12.
+- Tech Lead review decision (if actually issued): PR #8 changes required for integration-harness isolation; correction implemented without an invented backend endpoint. No approval to self-merge.
+- Current objective: Agent G/Tech Lead re-reviews corrected PR #8; do not self-merge.
+- Last confirmed result: Claude re-verified the Codex correction on the final source: lint, both strict TypeScript projects, 16 files / 205 Angular tests, 5 Node harness safety tests (adds a dispatch-path transport-spy test and a single-network-path source check), production build 922.47 kB warning only; D11 unconfigured and non-loopback runs refuse before any request; runtime audit clean; full audit unchanged (5 development-tooling findings); diff hygiene passed. Android not rerun: no app or native source changed since `1c7ac76` (Codex 16:04 Android pass stands).
+- Next concrete action: Agent G/Tech Lead reviews the fixture-blocked mutation correction in PR #8. Do not enable mutation probes until an approved Agent A runtime attestation can bind the API process to a disposable database.
+- Blocked by / decision owner: Agent A PR #12 merge/deploy for live G1; PR #15 merge for D11 fixtures; Agent A/Tech Lead for any future runtime fixture-identity contract; G2 membership read/removal; G3 assignment marker; G4 unassign; Agent B tracking; owner: physical device testing.
 - Dependencies / affected agents: Agent A for auth/RBAC/fleet/route/application APIs; Agent B for tracking/latest-state/compliance/realtime; Agent E for Admin-owned route and GPS operations; Agent F for device runbooks; Tech Lead for shared-contract approval and synchronized governance correction.
 
 ## Checklist coverage
@@ -40,6 +40,15 @@
 ## Latest verification
 | Command / check | Environment | Result | Date/time | Evidence / notes |
 |---|---|---|---|---|
+| Claude takeover round 2: `npm run check` (incl. `test:harness-safety`) | Node 24.15.0 | PASSED (warning) | 2026-10-22 16:17 +08:00 | Lint clean; 16 files / 205 Angular tests; 5/5 Node harness safety tests; build 922.47 kB, budget warning unchanged. |
+| Claude: harness guard mutation check | Node 24.15.0 | PASSED | 2026-10-22 16:17 +08:00 | With the allowlist forced open, 4 of 5 safety tests fail (all behavioral ones); restored source passes 5/5. |
+| Claude: `npm run test:business` unconfigured / non-loopback | Node 24.15.0 | PASSED (safe refusal) | 2026-10-22 16:17 +08:00 | Both exit 1 with `Refusing D11` before any network request. No database contacted. |
+| Claude: strict TypeScript, audits, diff hygiene | Node 24.15.0 | PASSED | 2026-10-22 16:17 +08:00 | App + spec `tsc --noEmit` exit 0; runtime audit 0; full audit 1 low / 3 moderate / 1 high development tooling, unchanged; `git diff --check` exit 0. |
+| PR #8 isolation-corrected `npm run check` | Node 24.19.0 | PASSED (warning) | 2026-10-22 16:03 +08:00 | Lint clean; 16 files / 205 Angular tests and 3 Node harness safety tests passed; production build 922.47 kB with unchanged budget warning. |
+| Harness safe-refusal proof | Node 24.19.0 | PASSED | 2026-10-22 15:59 +08:00 | Central request guard permits GET and `/auth/login` only. Confirmed loopback plus spoofed confirmation/attestation values produced `FIXTURE_ISOLATION_ATTESTATION_UNAVAILABLE`; write transport call count remained zero. Unconfigured harness also refused before network access. |
+| PR #8 isolation-corrected TypeScript projects | TypeScript 6.0.3 | PASSED | 2026-10-22 16:03 +08:00 | App and spec strict projects both exit 0. |
+| PR #8 isolation-corrected dependency audits | npm 10.9.1 | PASSED runtime / 5 development findings | 2026-10-22 16:03 +08:00 | Zero runtime vulnerabilities; unchanged full-tree total: 1 low, 3 moderate, 1 high in development tooling. No forced downgrade applied. |
+| PR #8 isolation-corrected Android validation | Capacitor 8.5.3; Gradle 8.14.3; JDK 21.0.6 | PASSED | 2026-10-22 16:04 +08:00 | Sync detected secure-storage/App plugins; `lintDebug testDebugUnitTest assembleDebug` completed 232 tasks successfully. |
 | Independent closure `npm run lint` | Node 24.19.0 | PASSED | 2026-10-22 13:28 +08:00 | ESLint exit 0, zero warnings, including the D11 harness. |
 | Independent closure TypeScript projects | TypeScript 6.0.3 | PASSED | 2026-10-22 13:29 +08:00 | `tsc -p tsconfig.app.json --noEmit` and `tsc -p tsconfig.spec.json --noEmit` both exit 0. |
 | Independent closure complete automated suite | Angular/Vitest | PASSED | 2026-10-22 13:40 +08:00 | Final: 16 files, 205 tests. Includes role-entry, API 404, map lifecycle/page cancellation, stale loads and mutation serialization. An intermediate rerun exposed two test-isolation assertions; the mutable native-platform flag and prior mock call were reset, then the complete suite passed. |
@@ -127,6 +136,28 @@
 - State: OWNER_VERIFICATION_PENDING; not required for documentation recovery.
 
 ## Activity log (newest first; preserve prior entries)
+### 2026-10-22 16:17 +08:00 — Claude takeover round 2: PR #8 correction recovered, verified and completed (`AGENT_D_PR8_ISOLATION_CORRECTED_READY_FOR_REVIEW`)
+- Action / reason: Directive VALRYDE-CLAUDE-D-TAKEOVER-ROUND2-001. Codex hit its usage limit after implementing the Agent G isolation correction locally; PR #8 still showed `1c7ac76`. Claude temporarily owns Agent D execution.
+- Checklist/issue: D11 integration-harness safety; no application feature behavior changed.
+- Files/config/services affected:
+  - **Recovered Codex work, preserved unchanged in intent:** `scripts/business-integration.mjs`, `scripts/business-integration-safety.mjs`, `scripts/business-integration-safety.test.mjs`, `package.json` (`test:harness-safety` and the check pipeline), `docs/testing/BUSINESS_INTEGRATION_PREPARATION.md`, and Codex's 16:04 status entry. Nothing was reset, stashed, rebased or force-pushed. Codex is credited for the correction design and implementation.
+  - **Claude addition:** the guard and `fetch` now live together in one exported `dispatchHarnessRequest`, which is the harness's only network path. Two Node tests drive that real dispatch path with a transport spy (GET and `POST /auth/login` reach it; lowercase `post`, `PUT`/`PATCH`/`DELETE`, the route-assignment and GPS writes, `/auth/logout` and the path variants `/auth/login/../jeepneys` and `/auth/login?next=…` are refused before transport) and statically assert the harness has exactly one `fetch` reference. A sentence was added to the preparation doc.
+- Observed result (success/failure/rollback): No bypass was found in Codex's source; the added tests close the gap that the original tests exercised helpers rather than the harness dispatch.
+- Validation and evidence: See the Latest verification rows at 2026-10-22 16:17 +08:00.
+- Contracts / risks / dependencies: No backend, Agent A/B, database or Traccar change. Mutation probes remain fixture-blocked until Agent A/Tech Lead approve a runtime isolation attestation; PR #15 merging alone does not enable them.
+- Commit/PR link or SHA (if available): Existing [PR #8](https://github.com/erwin-io/valryde-mobile-driver-operator/pull/8); SHA in the PR. Not merged.
+- Next action / owner gate: Agent G/Tech Lead re-review of PR #8. Do not self-merge.
+
+### 2026-10-22 16:04 +08:00 — PR #8 harness isolation corrected (`AGENT_D_PR8_ISOLATION_CORRECTED_READY_FOR_REVIEW`)
+- Action / reason: Agent G found that loopback plus caller confirmation did not prove the API's database was disposable. Preserved the fixture IDs and expected 403/409 cases while removing both business write probes.
+- Checklist/issue: D11 integration safety; no application feature behavior changed.
+- Files/config/services affected: `scripts/business-integration.mjs`, new safety module and Node tests, package check pipeline, D11 preparation documentation and this status file. No Agent A/backend file or contract changed.
+- Observed result (success/failure/rollback): Cross-Operator isolation remains tested with scoped GET results. Fleet/group writes are rejected before `fetch`, even with loopback and spoofed caller attestation. Exact assignment/group payload and expected status fixtures remain recorded as `FIXTURE_BLOCKED` expectations.
+- Validation and evidence: 205 Angular tests plus 3 harness safety tests passed; safe-refusal transport count is zero; lint, strict typechecks, production build, audits, diff hygiene, Capacitor sync and Android lint/unit/debug build passed.
+- Contracts / risks / dependencies: Agent A exposes no approved runtime development-fixture identity contract. Mutation probes cannot be enabled merely because PR #15 merges; a separately approved attestation mechanism is required.
+- Commit/PR link or SHA (if available): Existing [mobile PR #8](https://github.com/erwin-io/valryde-mobile-driver-operator/pull/8); corrected SHA recorded after push. Not merged.
+- Next action / owner gate: Agent G/Tech Lead re-reviews PR #8. Do not self-merge.
+
 ### 2026-10-22 13:33 +08:00 — Final independent UI closure (`AGENT_D_UI_INDEPENDENT_SCOPE_COMPLETE`)
 - Action / reason: Audited every Agent D ID against the latest merged main including PR #7, closed independent error/race/test gaps, prepared a fail-closed D11 executable, and rebuilt Android.
 - Checklist/issue: IDs 38–55; packages D1–D5.

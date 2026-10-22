@@ -1,5 +1,11 @@
 import assert from 'node:assert/strict';
 
+import {
+  assertApprovedFixtureIsolation,
+  dispatchHarnessRequest,
+  FIXTURE_ISOLATION_BLOCK_CODE,
+} from './business-integration-safety.mjs';
+
 const REQUIRED_CONFIRMATION = 'RUN_ISOLATED_VALRYDE_D11';
 const confirmation = process.env.VALRYDE_D11_CONFIRM;
 const rawBaseUrl = process.env.VALRYDE_D11_API_BASE_URL;
@@ -35,6 +41,25 @@ const fixtures = Object.freeze({
   conflictingGroupA: 'd7000000-0000-4000-8000-000000000002',
 });
 
+// Preserve the approved fixture expectations without probing writes until Agent A
+// provides a trustworthy runtime identity for the connected disposable database.
+const blockedMutationExpectations = Object.freeze([
+  {
+    name: 'cross-tenant Driver assignment',
+    method: 'POST',
+    path: `/jeepneys/${fixtures.activeJeepneyA}/driver-assignment`,
+    body: { driverId: fixtures.driverB.id },
+    expectedStatus: 403,
+  },
+  {
+    name: 'conflicting group addition',
+    method: 'POST',
+    path: `/fleet-groups/${fixtures.conflictingGroupA}/jeepneys`,
+    body: { jeepneyId: fixtures.conflictJeepneyA },
+    expectedStatus: 409,
+  },
+]);
+
 let passed = 0;
 
 function check(condition, message) {
@@ -44,7 +69,7 @@ function check(condition, message) {
 }
 
 async function request(path, { token, expectedStatus = 200, ...init } = {}) {
-  const response = await fetch(`${apiBaseUrl}${path}`, {
+  const response = await dispatchHarnessRequest(fetch, apiBaseUrl, path, {
     ...init,
     headers: {
       Accept: 'application/json',
@@ -98,21 +123,17 @@ check(
   'Operator B cannot list Operator A jeepneys',
 );
 
-const forbiddenAssignment = await request(`/jeepneys/${fixtures.activeJeepneyA}/driver-assignment`, {
-  token: operatorAToken,
-  expectedStatus: 403,
-  method: 'POST',
-  body: JSON.stringify({ driverId: fixtures.driverB.id }),
-});
-check(forbiddenAssignment?.error?.code !== undefined, 'cross-tenant Driver assignment is rejected with a structured 403');
-
-const routeConflict = await request(`/fleet-groups/${fixtures.conflictingGroupA}/jeepneys`, {
-  token: operatorAToken,
-  expectedStatus: 409,
-  method: 'POST',
-  body: JSON.stringify({ jeepneyId: fixtures.conflictJeepneyA }),
-});
-check(routeConflict?.error?.code !== undefined, 'conflicting group addition is rejected with a structured 409');
+for (const expectation of blockedMutationExpectations) {
+  try {
+    assertApprovedFixtureIsolation();
+    assert.fail(`Unsafe mutation authorization for ${expectation.name}`);
+  } catch (error) {
+    assert.equal(error?.code, FIXTURE_ISOLATION_BLOCK_CODE);
+    console.log(
+      `FIXTURE_BLOCKED ${expectation.method} ${expectation.path} (expected ${expectation.expectedStatus}; no request sent)`,
+    );
+  }
+}
 
 if (enableG1) {
   const directory = await request('/drivers?page=1&pageSize=20', { token: operatorAToken });
