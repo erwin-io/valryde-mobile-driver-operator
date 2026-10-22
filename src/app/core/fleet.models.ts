@@ -84,3 +84,42 @@ export interface EffectiveRouteDirection {
   activeFrom: string;
   direction: RouteDirection;
 }
+
+export interface GpsSetupRequest {
+  id: string;
+  vehicleApplicationId: string;
+  jeepneyId: string;
+  requestedByUserId: string;
+  status: GpsSetupStatus;
+  verificationStatus: GpsVerificationStatus;
+  scheduledAt: string | null;
+  installedAt: string | null;
+  rejectedReason: string | null;
+  verificationChecks: Record<string, unknown>;
+  verifiedByUserId: string | null;
+  verifiedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface TransitRoute {
+  id: string;
+  routeCode: string;
+  publicName: string;
+  description: string | null;
+  routeColorHex: string;
+  status: RouteDirection['status'];
+  createdAt: string;
+  updatedAt: string;
+  directions: RouteDirection[];
+}
+
+export interface Pagination {
+  page: number;
+  pageSize: number;
+  total: number;
+  totalPages: number;
+}
+
+/** Exactly one target; the server rejects both or neither (400). */
+export type RouteAssignmentTarget = { jeepneyId: string } | { groupId: string };
