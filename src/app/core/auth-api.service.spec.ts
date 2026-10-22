@@ -57,11 +57,22 @@ describe('AuthApiService', () => {
     ['forgotPassword', ['d@example.com'], '/api/auth/forgot-password', { email: 'd@example.com' }],
     ['resetPassword', ['reset-token', 'new-password-123'], '/api/auth/reset-password', { token: 'reset-token', password: 'new-password-123' }],
     ['logout', ['opaque-refresh-token'], '/api/auth/logout', { refreshToken: 'opaque-refresh-token' }],
+    ['changePassword', ['old-password-123', 'new-password-123'], '/api/auth/me/change-password', { currentPassword: 'old-password-123', newPassword: 'new-password-123' }],
+    ['requestEmailChange', ['new@example.test'], '/api/auth/me/change-email', { email: 'new@example.test' }],
+    ['confirmEmailChange', ['email-change-token'], '/api/auth/confirm-email-change', { token: 'email-change-token' }],
   ] as const)('%s posts the Agent A payload', (method, args, url, body) => {
     (service[method] as (...a: string[]) => ReturnType<AuthApiService['logout']>)(...args).subscribe();
     const pending = http.expectOne(url);
     expect(pending.request.method).toBe('POST');
     expect(pending.request.body).toEqual(body);
     pending.flush(null);
+  });
+
+  it('updates only the display name through PATCH /auth/me', () => {
+    service.updateProfile('New Name').subscribe();
+    const pending = http.expectOne('/api/auth/me');
+    expect(pending.request.method).toBe('PATCH');
+    expect(pending.request.body).toEqual({ displayName: 'New Name' });
+    pending.flush({ user: {} });
   });
 });

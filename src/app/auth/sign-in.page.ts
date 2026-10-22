@@ -22,6 +22,11 @@ import { apiErrorCode, apiErrorMessage } from '../core/api-error';
 import { homeFor } from '../core/role.guard';
 import { NoMobileRoleError, SessionService, SessionSupersededError } from '../core/session.service';
 
+const noticeFrom = (state: unknown) => {
+  const notice = (state as { notice?: unknown } | null)?.notice;
+  return typeof notice === 'string' ? notice : null;
+};
+
 @Component({
   selector: 'app-sign-in-page',
   standalone: true,
@@ -81,6 +86,9 @@ import { NoMobileRoleError, SessionService, SessionSupersededError } from '../co
             </ion-item>
           </ion-list>
 
+          @if (notice && !errorMessage()) {
+            <ion-note class="form-error" color="success" role="status">{{ notice }}</ion-note>
+          }
           @if (session.resumable() && !errorMessage()) {
             <ion-note class="form-error" color="warning" role="status">
               VALRYDE couldn't be reached to resume your session.
@@ -151,6 +159,8 @@ export class SignInPage {
   protected readonly apiError = signal<string | null>(null);
   protected readonly errorMessage = computed(() => this.apiError());
   protected readonly needsVerification = signal(false);
+  // Set by flows that end the session on purpose (password or email change), passed as navigation state.
+  protected readonly notice = noticeFrom(globalThis.history?.state);
   protected readonly previewEnabled = environment.enableFoundationPreview;
   protected readonly form = new FormGroup({
     email: new FormControl('', { nonNullable: true, validators: [Validators.required, Validators.email] }),

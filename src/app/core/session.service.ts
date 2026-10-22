@@ -120,6 +120,19 @@ export class SessionService {
     if (active && !user.roles.includes(active)) this.activeRoleState.set(null);
   }
 
+  /** Saves the display name and shows the server's copy; ignored if the session ended meanwhile. */
+  async updateProfile(displayName: string): Promise<void> {
+    const epoch = this.epoch;
+    const { user } = await firstValueFrom(this.api.updateProfile(displayName));
+    if (epoch === this.epoch) this.userState.set(user);
+  }
+
+  /** The server revoked every session (credentials changed, account disabled): end this one locally. */
+  endRevoked(): void {
+    this.clear();
+    this.expiredState.set(true);
+  }
+
   /** Clears the device first, then asks the server to revoke the refresh token. */
   async logout(): Promise<void> {
     const refreshToken = this.tokenStore.refreshToken();

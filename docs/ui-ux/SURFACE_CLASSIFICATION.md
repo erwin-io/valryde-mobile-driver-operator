@@ -34,8 +34,8 @@
 | S08 | Reset password | PAGE | — | Built (account slice) | Link token stripped from URL; 12–128 and confirmation checks. |
 | S09 | Role context chooser | PAGE | — | Built | Multi-role accounts only; offers only server-granted roles. |
 | S10 | Account | PAGE | — | Built (account slice) | Server profile via `GET /auth/me` on every visit; workspace switch; device persistence status. |
-| S11 | Edit profile | PAGE | A | | `PATCH /api/auth/me` DTO review. |
-| S12 | Account security | PAGE | — | | Change password/email endpoints observed. |
+| S11 | Edit profile | PAGE | — | Built (account security) | `PATCH /auth/me` display name only. |
+| S12 | Account security | PAGE | — | Built (account security) | Change password and change email (with `/auth/confirm-email-change` link page); both end every session server-side. |
 | S13 | Sign-out confirmation | SHEET | — | Built (account slice) | `ion-alert`; revokes the refresh token on the server. |
 
 ## Driver
