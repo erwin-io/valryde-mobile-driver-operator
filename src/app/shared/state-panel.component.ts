@@ -1,5 +1,15 @@
 import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
 import { IonButton, IonIcon } from '@ionic/angular';
+import { addIcons } from 'ionicons';
+import {
+  busOutline,
+  cloudOfflineOutline,
+  constructOutline,
+  hardwareChipOutline,
+  lockClosedOutline,
+  mapOutline,
+  peopleOutline,
+} from 'ionicons/icons';
 
 @Component({
   selector: 'app-state-panel',
@@ -45,4 +55,9 @@ export class StatePanelComponent {
   readonly message = input.required<string>();
   readonly actionLabel = input<string>();
   readonly action = output<void>();
+
+  constructor() {
+    // Every icon a state panel may show; pages pass names only.
+    addIcons({ busOutline, cloudOfflineOutline, constructOutline, hardwareChipOutline, lockClosedOutline, mapOutline, peopleOutline });
+  }
 }

@@ -42,7 +42,7 @@
 
 | ID | Surface | Class | Gate | Foundation | Note |
 |---|---|---|---|---|---|
-| D01 | Driver Home | PAGE | A+B | Shell | No-assignment state shown; no data simulated. |
+| D01 | Driver Home | PAGE | A+B | Built (static) | "Jeepneys you can access" with server route summaries; no assignment claim (G3); tracking (Agent B). |
 | D02 | My Jeepney | PAGE | A | | Fleet DTO review. |
 | D03 | Assigned Route Detail | PAGE | A | | Uses Agent A effective-route resolver only. `ROUTE_ASSIGNMENT_CONFLICT` shown as its own state. |
 | D04 | Route Guidance Map | PAGE | B | Placeholder | MapLibre added when the map slice starts. |
@@ -59,21 +59,21 @@
 
 | ID | Surface | Class | Gate | Foundation | Note |
 |---|---|---|---|---|---|
-| O01 | Operator Dashboard | PAGE | A+B | Shell | Counts show `—` until the aggregate contract exists; never computed locally. |
-| O02 | Fleet Hub | PAGE | — | Placeholder | Fleet tab root. |
-| O03 | My Jeepneys | PAGE | A | | |
-| O04 | Add Jeepney | PAGE | — | | Shares one form component with O06. |
-| O05 | Jeepney Detail | PAGE | A | | Orchestrates several Agent A reads. |
-| O06 | Edit Jeepney | COMP | — | | Edit mode of the O04 form. |
-| O07 | Vehicle Application | PAGE | — | | |
+| O01 | Operator Dashboard | PAGE | A+B | Built (counts) | Jeepney, approval and group counts from scoped lists; drivers (G1) and tracking (Agent B) show "—". |
+| O02 | Fleet Hub | PAGE | — | Built | Jeepneys and groups with counts; Drivers (G1) and live map (Agent B) disabled. |
+| O03 | My Jeepneys | PAGE | — | Built | Client-side plate search (no server search contract). |
+| O04 | Add Jeepney | PAGE | — | Built | Plate, body color and description only; one form component shared with O06. |
+| O05 | Jeepney Detail | PAGE | A | Built | Selected from the scoped list (no detail GET); application state, effective route; driver assignment disabled (G1). |
+| O06 | Edit Jeepney | COMP | — | Built | Edit mode of the O04 form: color and description only; never status or plate. |
+| O07 | Vehicle Application | PAGE | — | Built (in O05) | Submit with notes when the server state allows; review notes shown. |
 | O08 | Drivers | PAGE | A | | List/association contract incomplete. |
 | O09 | Associate Driver | PAGE | A | | No association flow until Agent A confirms the workflow. |
 | O10 | Driver Detail | PAGE | A | | |
 | O11 | Assign Driver to Jeepney | SHEET | — | | |
-| O12 | Fleet Groups | PAGE | — | | |
-| O13 | Create Group | PAGE | — | | Shares one form component with O15. |
-| O14 | Group Detail | PAGE | — | | |
-| O15 | Edit Group | COMP | — | | Edit mode of the O13 form. |
+| O12 | Fleet Groups | PAGE | — | Built | |
+| O13 | Create Group | PAGE | — | Built | Shares one form component with O15. |
+| O14 | Group Detail | PAGE | A | Built (info) | Members gated on G1/G2. |
+| O15 | Edit Group | COMP | — | Built | Name, description, Active/Inactive. |
 | O16 | Manage Group Members | SHEET | — | | |
 | O17 | Fleet Live Map | PAGE | B | | |
 | O18 | Transits | PAGE | A | Placeholder | Transits tab root; summary part gated. |

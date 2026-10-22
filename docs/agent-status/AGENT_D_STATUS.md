@@ -1,17 +1,17 @@
 # VALRYDE — Agent D Status
 
 ## Current snapshot
-- Updated at (ISO 8601, Asia/Manila): 2026-10-22T03:03T:00+08:00
+- Updated at (ISO 8601, Asia/Manila): 2026-10-22T07:51T:00+08:00
 - Agent / module: D — Driver/Operator Mobile
 - Repository: `valryde-mobile-driver-operator`
-- Branch / HEAD SHA: `feat/38-46-account-security` from `main` @ `9921ee209b7c0829eace5d2fa6c4c457087a6903` (PR #2 merged); stacked fleet/GPS branches follow
-- GitHub issues / PRs: PR #1, #2 merged. Independent UI batch: account-security PR (this branch), then stacked fleet and GPS PRs (see activity log).
+- Branch / HEAD SHA: `feat/48-50-operator-fleet` stacked on `feat/38-46-account-security` (PR #3) on `main` @ `9921ee2`
+- GitHub issues / PRs: PR #1, #2 merged. PR #3 (D1 account security) open; fleet PR stacked on it (see activity log).
 - Checklist IDs: 38–55
 - Implementation progress: IN_PROGRESS (`AGENT_D_INDEPENDENT_UI_BATCH_READY` batch; D1 account security READY_FOR_REVIEW)
 - Tech Lead review decision (if actually issued): PR #2 accepted and merged at `9921ee2`; independent UI batch not yet reviewed
 - Current objective: Large independent UI batch: D1 account security (38/46), D2 vehicles (48), D3 groups (50), D4 GPS/transit (55/52), D5 shell data (39/47), using only verified Agent A contracts.
-- Last confirmed result: D1 real Agent A + Mailpit run passed (profile, email change + confirm with session revocation, password change incl. wrong-current handling); contract inventory written.
-- Next concrete action: D2/D3 Operator fleet on stacked branch `feat/48-50-operator-fleet`.
+- Last confirmed result: D2/D3/D5 real Agent A run passed: jeepney create/edit/apply, server-set Pending approval, 409 duplicate, 403 status escalation, group create/edit, cross-operator and Driver 403 isolation.
+- Next concrete action: D4 GPS setup and transit (55/52) on stacked branch `feat/55-gps-setup-workflows`.
 - Blocked by / decision owner: Native device test environment (owner); real Gmail SMTP (owner); dual-role provisioning workflow (Agent A). Agent B tracking/realtime contracts remain unavailable.
 - Dependencies / affected agents: Agent A for auth/RBAC/fleet/route/application APIs; Agent B for tracking/latest-state/compliance/realtime; Agent E for Admin-owned route and GPS operations; Agent F for device runbooks; Tech Lead for shared-contract approval and synchronized governance correction.
 
@@ -19,7 +19,7 @@
 | Checklist ID | Feature / slice | Progress | Evidence (files/tests/PR) | Blocker / next action |
 |---:|---|---|---|---|
 | 38 | Driver Signup / Login / Profile | IN_PROGRESS (D1 READY_FOR_REVIEW) | Sign-in/register, verify email, forgot/reset password, Account (server profile, sign-out with revocation), secure refresh-token vault, restore; real Agent A tests in `docs/testing/ACCOUNT_SESSION_INTEGRATION.md` | Profile edit/security (S11/S12), native device verification |
-| 39 | My Jeepney | NOT_STARTED | Driver Home shell with no-assignment state only | Development directive and fleet DTO confirmation required |
+| 39 | My Jeepney | IN_PROGRESS (static) | Driver home lists accessible jeepneys + server route summary | Active-assignment marker G3 |
 | 40 | Assigned Transit Route & Direction | NOT_STARTED | Planning documentation only | Consume backend effective-route contract when authorized |
 | 41 | Driver Route Guidance Map | NOT_STARTED | Planning documentation only | Development directive and map/tracking contracts required |
 | 42 | GPS Device-Based Own Location | NOT_STARTED | Planning documentation only | Approved latest-state client DTO required |
@@ -27,10 +27,10 @@
 | 44 | Same-Group Jeepneys Live Map | NOT_STARTED | Planning documentation only | Scoped REST/realtime contracts required |
 | 45 | Groupmate Status & Details | NOT_STARTED | Planning documentation only | Scoped groupmate contract required |
 | 46 | Operator Signup / Login / Profile | IN_PROGRESS (D1 READY_FOR_REVIEW) | Same shared account/session slice, verified against the real API as OPERATOR | Profile edit/security (S11/S12), native device verification |
-| 47 | Operator Dashboard | NOT_STARTED | Dashboard layout shell; counts shown as unavailable, none computed locally | Aggregate/dashboard contract required |
-| 48 | My Jeepneys, Applications & Details | NOT_STARTED | Planning documentation only | Existing routes identified; feature authorization required |
+| 47 | Operator Dashboard | IN_PROGRESS (counts) | Jeepney/approval/group counts from scoped lists | Driver count G1; tracking tiles Agent B |
+| 48 | My Jeepneys, Applications & Details | IN_PROGRESS (D2 READY_FOR_REVIEW) | Jeepney list/create/edit/detail, application submit/status, effective route; `docs/testing/OPERATOR_FLEET_INTEGRATION.md` | GPS section (D4); driver assignment gated on G1 |
 | 49 | Driver Management & Assignment | NOT_STARTED | Planning documentation only | Existing fleet routes identified; DTO verification pending |
-| 50 | Fleet Group Management | NOT_STARTED | Planning documentation only | Existing fleet routes identified; DTO verification pending |
+| 50 | Fleet Group Management | IN_PROGRESS (D3 READY_FOR_REVIEW) | Group list/create/edit/status | Membership gated on G1/G2 |
 | 51 | Group Live Tracking | NOT_STARTED | Planning documentation only | Scoped REST/realtime contracts required |
 | 52 | Transit Assignment, Details & Route Change Request | NOT_STARTED | Planning documentation only | Assignment exists; route-change request contract pending |
 | 53 | Route Compliance Overview | NOT_STARTED | Planning documentation only | Compliance API/DTO required |
@@ -92,6 +92,26 @@
 - State: OWNER_VERIFICATION_PENDING; not required for documentation recovery.
 
 ## Activity log (newest first; preserve prior entries)
+### 2026-10-22 07:51 +08:00 — D2/D3/D5 Operator fleet (independent UI batch, part 2)
+- Action / reason: Batch package D2 (vehicles), D3 (groups), D5 (dashboard counts and Driver home), using only inventoried Agent A contracts.
+- Checklist/issue: 48, 50, 47, 39 (partial).
+- Files/config/services affected:
+  - `core/fleet.models.ts` and `core/fleet-api.service.ts` (types forbid `status` and `operatorId` from Operators); `shared/fleet-status.ts`.
+  - Operator Fleet hub, Jeepneys list, form and detail, Groups list, form and detail; dashboard counts; Driver home list.
+  - Centralized state-panel icon registration, which also fixes the never-registered `construct-outline`.
+  - Routes, specs, docs.
+- Observed result (success/failure/rollback):
+  - The first build hit 1.03 MB and failed the 1 MB error budget. `ion-textarea`, `ion-toggle` and `ion-searchbar` were replaced with in-bundle components, giving 922.50 kB; thresholds unchanged.
+  - A unit test caught `ngSubmit` without `formGroup` on the application form (submit would never fire); fixed.
+- Validation and evidence: Real responses:
+  - create 201, edit 200, apply 201, duplicate 409, `status` escalation 403
+  - group create 201, edit 200
+  - Operator B 403 on all of A's records, and A's records absent from B's lists
+  - Driver 403 on fleet mutations, no token 401
+- Contracts / risks / dependencies: No contract changes. Gated: driver assignment and directory (G1), group membership (G2), Driver assignment marker (G3), tracking (Agent B). Dev records created: `AGD 1022`, its application, `AGD Group 1022`. Cleanup needs owner approval.
+- Commit/PR link or SHA (if available): See the stacked PR on `feat/48-50-operator-fleet`.
+- Next action / owner gate: D4 GPS and transit.
+
 ### 2026-10-22 03:03 +08:00 — D1 account security (independent UI batch, part 1)
 - Action / reason: Tech Lead "Large Independent UI Development Release" after PR #2 merged at `9921ee2`. First step: contract inventory from Agent A `origin/main` `827738c` (read-only `git show`).
 - Checklist/issue: 38, 46 (partial).

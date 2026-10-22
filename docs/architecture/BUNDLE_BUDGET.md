@@ -42,4 +42,13 @@ Initial bundle: **911.50 kB** raw / ~204 kB transfer (+68 kB). Measured contribu
 
 Per Tech Lead decision, no Ionic internals were copied and thresholds are unchanged; the warning stays documented.
 
+## Update — operator fleet slice (2026-10-22)
+
+The first build of the fleet pages hit **1.03 MB**, failing the unchanged 1 MB error budget. The new `ion-textarea` (54 kB), `ion-toggle` (29 kB) and `ion-searchbar` (28 kB) were eager through the barrel cause. Instead of changing thresholds or copying Ionic internals, the pages use components already in the bundle:
+- `ion-input` for descriptions and notes
+- `ion-input type="search"` for search
+- an `ion-segment` for group status
+
+Result: **922.50 kB** initial (warning only). Before adding new Ionic component types, check their cost with `ng build --stats-json`.
+
 Recommendation: keep the documented warning for the foundation. Decide on option 1 or 2 before the first feature slice that adds substantial UI.
