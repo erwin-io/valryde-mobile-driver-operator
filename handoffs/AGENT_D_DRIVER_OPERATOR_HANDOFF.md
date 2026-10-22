@@ -5,7 +5,7 @@
 **Application:** Valryde Operator
 **Repository:** `valryde-mobile-driver-operator`
 **Canonical workspace:** `C:\Development\valryde\valryde-mobile-driver-operator`
-**State:** Development authorized; `UX_CONTRACT_READY` reported (UX acceptance pending); frontend foundation released and submitted for review
+**State:** Frontend foundation and D1–D5 merged; D6–D11 Driver/Fleet Expansion authorized; temporary Codex takeover active
 
 ## Mission
 
@@ -72,8 +72,9 @@ The backend snapshot inspected during bootstrap exposes auth, user profile, jeep
 ## Frontend execution checkpoints
 
 1. `UX_CONTRACT_READY` — screen inventory, role navigation/flows, design system/components, Agent A dependencies, Agent B gates and screen acceptance criteria. Reported; detailed acceptance pending.
-2. Application scaffold and shared shell (`FRONTEND_FOUNDATION_READY`) — released 2026-10-21. Current checkpoint.
-3. Authorized vertical feature slices — follow stable contracts and checklist priorities.
+2. Application scaffold and shared shell (`FRONTEND_FOUNDATION_READY`) — released and merged.
+3. D1–D5 account, fleet, GPS and transit UI batch — merged in PRs #3–#5.
+4. D6–D11 Driver/Fleet Expansion — released 2026-10-22; current checkpoint.
 
 ## Reporting
 
@@ -86,6 +87,15 @@ Do not create separate status histories. Do not claim Tech Lead acceptance or ha
 
 The initial bootstrap was mistakenly prepared under `C:\Development\valryde\valryde-mobile-operator` following an incorrect Tech Lead path. That folder remains untouched as a recoverable source. On 2026-10-21 the documentation was reconciled into this existing canonical Git repository; the incorrect path is retained here as historical evidence, not as an active workspace.
 
+## Temporary Codex takeover / Claude resumption
+
+- Claude's D1–D5 work is preserved in merged PRs #3–#5 and credited in each commit. There were no uncommitted Claude changes or secondary mobile worktrees at takeover.
+- Codex continued from clean `main` `f0f57bb` on `feat/40-41-driver-route-map-foundation`; do not recreate the foundation or D1–D5.
+- D6/D7 uses only Driver-scoped `GET /jeepneys`, `GET /jeepneys/{id}/effective-route`, and public `GET /transit-routes/{id}`. It labels the selected jeepney as authorized/access-visible because G3 is absent; it never asserts an active Driver assignment.
+- The static MapLibre view renders official route geometry/color and endpoint markers only. Phone GPS, live vehicle state, groupmates, compliance, and Agent B realtime remain absent.
+- Android was added with Capacitor 8.5.3 and built under JDK 21. Device/API verification remains an owner gate.
+- Agent A PR #12 (G1) and PR #15 (fixtures) were open, clean and CI-green at takeover but unmerged. D8 must not claim live G1 integration before merge/dev availability; G2/G3/G4 remain gated.
+
 ## Next action
 
-Tech Lead reviews the frontend foundation PR and `docs/ui-ux/SURFACE_CLASSIFICATION.md`. Do not implement feature slices until the next frontend checkpoint is explicitly released.
+Complete review of the D6/D7 focused branch and its web/Android evidence. After it is coherent, proceed to D8 on `feat/49-50-driver-group-management` only when the approved G1 contract is merged or explicitly as review-only preparation; preserve G2/G3/G4 gates.

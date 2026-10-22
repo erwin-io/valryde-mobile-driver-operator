@@ -44,8 +44,8 @@
 |---|---|---|---|---|---|
 | D01 | Driver Home | PAGE | A+B | Built (static) | "Jeepneys you can access" with server route summaries; no assignment claim (G3); tracking (Agent B). |
 | D02 | My Jeepney | PAGE | A | | Fleet DTO review. |
-| D03 | Assigned Route Detail | PAGE | A | | Uses Agent A effective-route resolver only. `ROUTE_ASSIGNMENT_CONFLICT` shown as its own state. |
-| D04 | Route Guidance Map | PAGE | B | Placeholder | MapLibre added when the map slice starts. |
+| D03 | Assigned Route Detail | PAGE | A | Built (D6) | Uses Agent A effective-route resolver only. Vehicle is labeled authorized/access-visible until G3 exists; `ROUTE_ASSIGNMENT_CONFLICT` is distinct. |
+| D04 | Route Guidance Map | PAGE | A | Built (D7 static) | MapLibre renders official geometry/color and endpoints; no phone GPS, tracking or live markers. G3 still gates active-vehicle identification. |
 | D05 | Own Vehicle Map Detail | SHEET | B | | Bottom sheet on D04. |
 | D06 | Off-route Warning | COMP | B | | Persistent banner and detail sheet; displays backend compliance state only. |
 | D07 | Group Map/List | PAGE | B | Placeholder | |

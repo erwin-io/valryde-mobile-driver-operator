@@ -70,6 +70,15 @@ A route existing is not permission. The **Ownership** column is what the service
 | Driver "My Jeepney" | `GET /jeepneys` + `GET /jeepneys/{id}/effective-route` | No active-assignment marker (**G3**), so the list is shown as "jeepneys you can access", never as "your assigned jeepney" |
 | Tracker, location, compliance, groupmates | — | **Agent B** contracts (and G2 for groupmates) |
 
+## D6/D7 — Driver route and static geometry (checklists 40, 41)
+
+| Operation | Method / path | Client behavior | Gate |
+|---|---|---|---|
+| Authorized vehicle candidates | `GET /jeepneys` | Uses only the Driver-scoped server result. If more than one vehicle is visible, the Driver chooses which authorized vehicle to inspect. The choice is not represented as an active assignment. | **G3** is still required to identify the active Driver assignment. |
+| Effective route/direction | `GET /jeepneys/{id}/effective-route` | Displays server-owned DIRECT/GROUP source, direction label and endpoints. Handles `null`, `409 ROUTE_ASSIGNMENT_CONFLICT`, inactive vehicle/direction, invalid geometry and request failures distinctly. | Available for server-authorized vehicles. |
+| Official route identity/color/geometry | `GET /transit-routes/{routeId}` | Cross-checks that the effective direction is still published ACTIVE, then renders its official LineString and route color. Invalid or missing geometry is never drawn. | Available for ACTIVE public routes. |
+| Location/tracking/compliance | None in D6/D7 | No phone GPS, vehicle marker, groupmate marker, deviation warning, Traccar identifier or realtime channel is used. | **Agent B**. |
+
 ## Gaps that keep controls absent or disabled
 
 - **G1:** no drivers list.
