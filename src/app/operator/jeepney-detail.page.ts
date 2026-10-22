@@ -223,6 +223,8 @@ type RouteState = { kind: 'loading' } | { kind: 'none' } | { kind: 'conflict' } 
 export class JeepneyDetailPage {
   private readonly api = inject(FleetApiService);
   private entered = false;
+  private loadEpoch = 0;
+  private driversEpoch = 0;
   protected readonly jeepneyId = inject(ActivatedRoute).snapshot.paramMap.get('id') ?? '';
   protected readonly loading = signal(true);
   protected readonly loadError = signal<string | null>(null);
@@ -267,6 +269,7 @@ export class JeepneyDetailPage {
   }
 
   protected async load(): Promise<void> {
+    const epoch = ++this.loadEpoch;
     this.loading.set(true);
     this.loadError.set(null);
     try {
@@ -276,6 +279,7 @@ export class JeepneyDetailPage {
         firstValueFrom(this.api.listApplications()),
         firstValueFrom(this.api.listGpsRequests()),
       ]);
+      if (epoch !== this.loadEpoch) return;
       const jeepney = jeepneys.find((j) => j.id === this.jeepneyId) ?? null;
       this.jeepney.set(jeepney);
       this.application.set(newest(applications.filter((a) => a.jeepneyId === this.jeepneyId)));
@@ -285,23 +289,27 @@ export class JeepneyDetailPage {
         void this.loadDrivers();
       }
     } catch (error: unknown) {
+      if (epoch !== this.loadEpoch) return;
       this.loadError.set(apiErrorMessage(error, 'This jeepney could not be loaded.'));
     } finally {
-      this.loading.set(false);
+      if (epoch === this.loadEpoch) this.loading.set(false);
     }
   }
 
   protected async loadDrivers(): Promise<void> {
+    const epoch = ++this.driversEpoch;
     this.driversLoading.set(true);
     this.driversError.set(null);
     try {
       const result = await firstValueFrom(this.api.listDrivers({ status: 'ACTIVE', page: 1, pageSize: 100 }));
+      if (epoch !== this.driversEpoch) return;
       this.drivers.set(result.drivers);
     } catch (error: unknown) {
+      if (epoch !== this.driversEpoch) return;
       this.drivers.set([]);
       this.driversError.set(apiErrorMessage(error, 'The Driver directory could not be loaded.'));
     } finally {
-      this.driversLoading.set(false);
+      if (epoch === this.driversEpoch) this.driversLoading.set(false);
     }
   }
 

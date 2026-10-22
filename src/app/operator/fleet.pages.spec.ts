@@ -2,12 +2,13 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { type Type } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { ActivatedRoute, convertToParamMap, provideRouter, Router } from '@angular/router';
-import { of, throwError } from 'rxjs';
+import { of, Subject, throwError } from 'rxjs';
 
 import { DriverHomePage } from '../driver/driver-home.page';
 import { FleetApiService } from '../core/fleet-api.service';
 import type { DriverDirectoryEntry, FleetGroup, GpsSetupRequest, Jeepney, TransitRoute, VehicleApplication } from '../core/fleet.models';
 import { DriversPage } from './drivers.page';
+import { FleetHubPage } from './fleet-hub.page';
 import { GroupDetailPage } from './group-detail.page';
 import { GroupFormPage } from './group-form.page';
 import { GroupsPage } from './groups.page';
@@ -213,6 +214,25 @@ describe('Operator fleet pages', () => {
       expect(text()).toContain('Active operator profile required');
       expect(text()).toContain('Try again');
     });
+
+    it('ignores a stale search response that finishes after a newer query', async () => {
+      const oldSearch = new Subject<{ drivers: DriverDirectoryEntry[]; pagination: { page: number; pageSize: number; total: number; totalPages: number } }>();
+      const { fixture, settle, text } = await render(DriversPage);
+      api.listDrivers
+        .mockReturnValueOnce(oldSearch)
+        .mockReturnValueOnce(
+          of({ drivers: [driver({ driverId: 'd-new', displayName: 'Maria Santos' })], pagination: { page: 1, pageSize: 20, total: 1, totalPages: 1 } }),
+        );
+      const page = fixture.componentInstance as unknown as { search(value: string): void };
+      page.search('old');
+      page.search('maria');
+      await settle();
+      oldSearch.next({ drivers: [driver({ displayName: 'Old Result' })], pagination: { page: 1, pageSize: 20, total: 1, totalPages: 1 } });
+      oldSearch.complete();
+      await settle();
+      expect(text()).toContain('Maria Santos');
+      expect(text()).not.toContain('Old Result');
+    });
   });
 
   describe('JeepneysPage (O03)', () => {
@@ -268,6 +288,21 @@ describe('Operator fleet pages', () => {
       instance.form.setValue({ plateNo: 'ABC 123', colorHex: '#000000', description: '' });
       await submit();
       expect(text()).toContain('A jeepney with this plate number already exists');
+    });
+
+    it('serializes create submissions while the server response is pending', async () => {
+      const pending = new Subject<Jeepney>();
+      api.createJeepney.mockReturnValue(pending);
+      const { instance, fixture, settle } = await render(JeepneyFormPage);
+      instance.form.setValue({ plateNo: 'ABC 123', colorHex: '#1E88E5', description: '' });
+      const page = fixture.componentInstance as unknown as { save(): Promise<void> };
+      const first = page.save();
+      const second = page.save();
+      expect(api.createJeepney).toHaveBeenCalledTimes(1);
+      pending.next(jeepney({ id: 'j-new' }));
+      pending.complete();
+      await Promise.all([first, second]);
+      await settle();
     });
 
     it('edits only color and description; plate and status are never sent', async () => {
@@ -389,6 +424,7 @@ describe('Operator fleet pages', () => {
 
     it.each([
       [403, 'FORBIDDEN', 'Driver is outside this Operator scope'],
+      [404, 'NOT_FOUND', 'Driver or jeepney was not found'],
       [409, 'CONFLICT', 'Driver or jeepney already has a conflicting assignment'],
     ])('shows a %s assignment rejection without reporting success', async (status, code, message) => {
       api.assignDriver.mockReturnValue(rejected(status, code, message));
@@ -476,6 +512,20 @@ describe('Operator fleet pages', () => {
       expect(api.addJeepneyToGroup).toHaveBeenCalledWith('g-1', 'j-1');
       expect(text()).toContain('Membership listing and removal remain unavailable until G2.');
     });
+
+    it('serializes group additions while a mutation is pending', async () => {
+      const pending = new Subject<string>();
+      api.addDriverToGroup.mockReturnValue(pending);
+      const { fixture, settle } = await render(GroupDetailPage, { id: 'g-1' });
+      const page = fixture.componentInstance as unknown as { addDriver(value: DriverDirectoryEntry): Promise<void> };
+      const first = page.addDriver(driver());
+      const second = page.addDriver(driver({ driverId: 'd-2' }));
+      expect(api.addDriverToGroup).toHaveBeenCalledTimes(1);
+      pending.next('Driver added');
+      pending.complete();
+      await Promise.all([first, second]);
+      await settle();
+    });
   });
 
   describe('Dashboard and Driver home (D5)', () => {
@@ -492,6 +542,41 @@ describe('Operator fleet pages', () => {
     it('loads nothing in the foundation preview', async () => {
       await render(OperatorDashboardPage, {}, { foundationPreview: true });
       expect(api.listJeepneys).not.toHaveBeenCalled();
+    });
+
+    it('keeps the newest dashboard refresh when an older response finishes late', async () => {
+      const oldJeepneys = new Subject<Jeepney[]>();
+      const oldGroups = new Subject<FleetGroup[]>();
+      const oldDrivers = new Subject<{ drivers: DriverDirectoryEntry[]; pagination: { page: number; pageSize: number; total: number; totalPages: number } }>();
+      const { fixture, settle, text } = await render(OperatorDashboardPage);
+      api.listJeepneys.mockReturnValueOnce(oldJeepneys).mockReturnValueOnce(of([jeepney({ id: 'new' })]));
+      api.listGroups.mockReturnValueOnce(oldGroups).mockReturnValueOnce(of([group(), group({ id: 'g-2' })]));
+      api.listDrivers
+        .mockReturnValueOnce(oldDrivers)
+        .mockReturnValueOnce(of({ drivers: [], pagination: { page: 1, pageSize: 1, total: 4, totalPages: 4 } }));
+      const page = fixture.componentInstance as unknown as { load(): Promise<void> };
+      const stale = page.load();
+      await page.load();
+      oldJeepneys.next([jeepney(), jeepney({ id: 'old-2' }), jeepney({ id: 'old-3' })]);
+      oldJeepneys.complete();
+      oldGroups.next([group()]);
+      oldGroups.complete();
+      oldDrivers.next({ drivers: [], pagination: { page: 1, pageSize: 1, total: 9, totalPages: 9 } });
+      oldDrivers.complete();
+      await stale;
+      await settle();
+      expect(text()).toMatch(/Jeepneys\s*1/);
+      expect(text()).toMatch(/Fleet groups\s*2/);
+      expect(text()).toMatch(/Drivers\s*4/);
+      expect(text()).not.toMatch(/Drivers\s*9/);
+    });
+
+    it('keeps independent Fleet hub counts when one source fails', async () => {
+      api.listDrivers.mockReturnValue(rejected(503, 'SERVICE_UNAVAILABLE'));
+      const { text } = await render(FleetHubPage);
+      expect(text()).toMatch(/My jeepneys[\s\S]*2/);
+      expect(text()).toMatch(/Fleet groups[\s\S]*1/);
+      expect(text()).toMatch(/Drivers[\s\S]*—/);
     });
 
     it('lists the jeepneys a Driver can access with server route summaries, without claiming an assignment', async () => {
@@ -603,6 +688,21 @@ describe('Operator fleet pages', () => {
       await settle();
       expect(api.assignRoute).toHaveBeenCalledWith('d-1', { groupId: 'g-1' });
       expect(text()).toContain('Group North now uses Cubao → Quiapo.');
+    });
+
+    it('serializes route assignment while the server mutation is pending', async () => {
+      const pending = new Subject<unknown>();
+      api.assignRoute.mockReturnValue(pending);
+      const { fixture, settle } = await render(TransitDetailPage, { routeId: 'r-1' });
+      const page = fixture.componentInstance as unknown as Detail;
+      page.choose(transitRoute.directions[0]);
+      const first = page.assign('g:g-1');
+      const second = page.assign('j:j-1');
+      expect(api.assignRoute).toHaveBeenCalledTimes(1);
+      pending.next({});
+      pending.complete();
+      await Promise.all([first, second]);
+      await settle();
     });
 
     it.each([

@@ -106,6 +106,7 @@ export class JeepneysPage {
   private readonly api = inject(FleetApiService);
   private readonly router = inject(Router);
   private entered = false;
+  private loadEpoch = 0;
   protected readonly state = signal<'loading' | 'ready' | 'error'>('loading');
   protected readonly error = signal('');
   protected readonly jeepneys = signal<Jeepney[]>([]);
@@ -129,11 +130,15 @@ export class JeepneysPage {
   }
 
   protected async load(): Promise<void> {
+    const epoch = ++this.loadEpoch;
     this.state.set('loading');
     try {
-      this.jeepneys.set(await firstValueFrom(this.api.listJeepneys()));
+      const jeepneys = await firstValueFrom(this.api.listJeepneys());
+      if (epoch !== this.loadEpoch) return;
+      this.jeepneys.set(jeepneys);
       this.state.set('ready');
     } catch (error: unknown) {
+      if (epoch !== this.loadEpoch) return;
       this.error.set(apiErrorMessage(error, 'Your jeepneys could not be loaded.'));
       this.state.set('error');
     }

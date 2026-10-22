@@ -1,24 +1,24 @@
 # VALRYDE — Agent D Status
 
 ## Current snapshot
-- Updated at (ISO 8601, Asia/Manila): 2026-10-22T12:08:03+08:00
+- Updated at (ISO 8601, Asia/Manila): 2026-10-22T16:17T:00+08:00
 - Agent / module: D — Driver/Operator Mobile
 - Repository: `valryde-mobile-driver-operator`
-- Branch / implementation SHA: `feat/49-50-driver-group-management`; normal reconciliation merge `c48f5174c7702d0f50f5a833c7ea3d8560470066` with parents `54666ba` and `1f9d6cc`.
-- GitHub issues / PRs: PRs #1–#6 merged. D8–D10 PR #7 is open, mergeable and GitGuardian-clean after reconciliation. Agent A G1 PR #12 and fixture PR #15 remain open/green.
+- Branch / implementation SHA: `feat/agent-d-independent-ui-closure`; implementation commit `51c56a6ddbe0ee0d0b874b7549748b4247d53fd8`; based on merged `origin/main` at `c8d0580e69dabbd28799737e01c84ead93ad5884` (includes PR #7).
+- GitHub issues / PRs: Mobile PRs #1–#7 merged; corrective PR #8 open for review. Agent A G1 PR #12 and fixture PR #15 remain open/green.
 - Checklist IDs: 38–55
-- Implementation progress: D6/D7 merged; D8–D10 implementation and deterministic tests complete; D11 BLOCKED_BY_FIXTURE_PR_15.
-- Tech Lead review decision (if actually issued): D6/D7 accepted through merged PR #6; PR #7 not accepted or merged.
-- Current objective: Await Agent G/Tech Lead review of reconciled PR #7; do not self-merge.
-- Last confirmed result: Lint and both TypeScript projects passed; 13 files / 170 tests passed; production build 922.46 kB warning only; runtime audit clean; full audit has five development-tooling findings; diff hygiene passed.
-- Next concrete action: Agent G/Tech Lead reviews PR #7. D11 remains gated on Agent A fixture PR #15.
-- Blocked by / decision owner: Agent A PR #12 merge/deploy for live G1; PR #15 merge for D11 fixtures; G2 membership read/removal; G3 assignment marker; G4 unassign; Agent B tracking; owner: physical device testing.
+- Implementation progress: All independently deliverable UI behavior and deterministic coverage for IDs 38–55 complete; D11 reads remain `BLOCKED_BY_AGENT_A_PR_15`; D11 business mutation probes are additionally fixture-blocked until Agent A approves a trustworthy runtime isolation attestation; live G1 remains gated on Agent A PR #12.
+- Tech Lead review decision (if actually issued): PR #8 changes required for integration-harness isolation; correction implemented without an invented backend endpoint. No approval to self-merge.
+- Current objective: Agent G/Tech Lead re-reviews corrected PR #8; do not self-merge.
+- Last confirmed result: Claude re-verified the Codex correction on the final source: lint, both strict TypeScript projects, 16 files / 205 Angular tests, 5 Node harness safety tests (adds a dispatch-path transport-spy test and a single-network-path source check), production build 922.47 kB warning only; D11 unconfigured and non-loopback runs refuse before any request; runtime audit clean; full audit unchanged (5 development-tooling findings); diff hygiene passed. Android not rerun: no app or native source changed since `1c7ac76` (Codex 16:04 Android pass stands).
+- Next concrete action: Agent G/Tech Lead reviews the fixture-blocked mutation correction in PR #8. Do not enable mutation probes until an approved Agent A runtime attestation can bind the API process to a disposable database.
+- Blocked by / decision owner: Agent A PR #12 merge/deploy for live G1; PR #15 merge for D11 fixtures; Agent A/Tech Lead for any future runtime fixture-identity contract; G2 membership read/removal; G3 assignment marker; G4 unassign; Agent B tracking; owner: physical device testing.
 - Dependencies / affected agents: Agent A for auth/RBAC/fleet/route/application APIs; Agent B for tracking/latest-state/compliance/realtime; Agent E for Admin-owned route and GPS operations; Agent F for device runbooks; Tech Lead for shared-contract approval and synchronized governance correction.
 
 ## Checklist coverage
 | Checklist ID | Feature / slice | Progress | Evidence (files/tests/PR) | Blocker / next action |
 |---:|---|---|---|---|
-| 38 | Driver Signup / Login / Profile | IN_PROGRESS (D1 READY_FOR_REVIEW) | Sign-in/register, verify email, forgot/reset password, Account (server profile, sign-out with revocation), secure refresh-token vault, restore; real Agent A tests in `docs/testing/ACCOUNT_SESSION_INTEGRATION.md` | Profile edit/security (S11/S12), native device verification |
+| 38 | Driver Signup / Login / Profile | INDEPENDENT_SCOPE_COMPLETE | Sign-in/register, verify/recovery/email/password flows, Account, revoked/disabled handling, role navigation, secure refresh-token vault/restore and race coverage; real Agent A evidence in `docs/testing/ACCOUNT_SESSION_INTEGRATION.md` | Native device/SMTP verification |
 | 39 | My Jeepney | IN_PROGRESS (static) | Driver home lists accessible jeepneys + server route summary | Active-assignment marker G3 |
 | 40 | Assigned Transit Route & Direction | MERGED (D6) | Authorized vehicle selection, server-resolved DIRECT/GROUP route identity/direction/endpoints and explicit no-route/conflict/inactive/error states; `docs/testing/DRIVER_ROUTE_MAP.md` | G3 still gates active Driver vehicle identification |
 | 41 | Driver Route Guidance Map | MERGED (D7 STATIC) | Lazy MapLibre official LineString/color/endpoints, camera fit/recenter, geometry validation and cleanup; deterministic tests + Android build | Device/WebView smoke owner-gated; live GPS/tracking remains Agent B |
@@ -26,7 +26,7 @@
 | 43 | Route Compliance Status & Alert | NOT_STARTED | Planning documentation only | Approved backend compliance contract required |
 | 44 | Same-Group Jeepneys Live Map | NOT_STARTED | Planning documentation only | Scoped REST/realtime contracts required |
 | 45 | Groupmate Status & Details | NOT_STARTED | Planning documentation only | Scoped groupmate contract required |
-| 46 | Operator Signup / Login / Profile | IN_PROGRESS (D1 READY_FOR_REVIEW) | Same shared account/session slice, verified against the real API as OPERATOR | Profile edit/security (S11/S12), native device verification |
+| 46 | Operator Signup / Login / Profile | INDEPENDENT_SCOPE_COMPLETE | Same shared account/session slice and role-adaptive navigation, verified against the real API as OPERATOR | Native device/SMTP verification |
 | 47 | Operator Dashboard | READY_FOR_REVIEW (D10 partial) | Existing counts preserved; G1 pagination total supplies Driver count with independent failure handling | Live G1 pass awaits PR #12; tracking tiles Agent B |
 | 48 | My Jeepneys, Applications & Details | IN_PROGRESS (D2 READY_FOR_REVIEW) | Jeepney list/create/edit/detail, application submit/status, effective route; `docs/testing/OPERATOR_FLEET_INTEGRATION.md` | GPS section (D4); driver assignment gated on G1 |
 | 49 | Driver Management & Assignment | READY_FOR_REVIEW (D8) | Scoped directory/search/pagination, eligibility, current assignment, explicit confirmation, `driverId` mutation tests | Live G1 pass awaits Agent A PR #12 merge/deploy; G4 unassign absent |
@@ -40,6 +40,26 @@
 ## Latest verification
 | Command / check | Environment | Result | Date/time | Evidence / notes |
 |---|---|---|---|---|
+| Claude takeover round 2: `npm run check` (incl. `test:harness-safety`) | Node 24.15.0 | PASSED (warning) | 2026-10-22 16:17 +08:00 | Lint clean; 16 files / 205 Angular tests; 5/5 Node harness safety tests; build 922.47 kB, budget warning unchanged. |
+| Claude: harness guard mutation check | Node 24.15.0 | PASSED | 2026-10-22 16:17 +08:00 | With the allowlist forced open, 4 of 5 safety tests fail (all behavioral ones); restored source passes 5/5. |
+| Claude: `npm run test:business` unconfigured / non-loopback | Node 24.15.0 | PASSED (safe refusal) | 2026-10-22 16:17 +08:00 | Both exit 1 with `Refusing D11` before any network request. No database contacted. |
+| Claude: strict TypeScript, audits, diff hygiene | Node 24.15.0 | PASSED | 2026-10-22 16:17 +08:00 | App + spec `tsc --noEmit` exit 0; runtime audit 0; full audit 1 low / 3 moderate / 1 high development tooling, unchanged; `git diff --check` exit 0. |
+| PR #8 isolation-corrected `npm run check` | Node 24.19.0 | PASSED (warning) | 2026-10-22 16:03 +08:00 | Lint clean; 16 files / 205 Angular tests and 3 Node harness safety tests passed; production build 922.47 kB with unchanged budget warning. |
+| Harness safe-refusal proof | Node 24.19.0 | PASSED | 2026-10-22 15:59 +08:00 | Central request guard permits GET and `/auth/login` only. Confirmed loopback plus spoofed confirmation/attestation values produced `FIXTURE_ISOLATION_ATTESTATION_UNAVAILABLE`; write transport call count remained zero. Unconfigured harness also refused before network access. |
+| PR #8 isolation-corrected TypeScript projects | TypeScript 6.0.3 | PASSED | 2026-10-22 16:03 +08:00 | App and spec strict projects both exit 0. |
+| PR #8 isolation-corrected dependency audits | npm 10.9.1 | PASSED runtime / 5 development findings | 2026-10-22 16:03 +08:00 | Zero runtime vulnerabilities; unchanged full-tree total: 1 low, 3 moderate, 1 high in development tooling. No forced downgrade applied. |
+| PR #8 isolation-corrected Android validation | Capacitor 8.5.3; Gradle 8.14.3; JDK 21.0.6 | PASSED | 2026-10-22 16:04 +08:00 | Sync detected secure-storage/App plugins; `lintDebug testDebugUnitTest assembleDebug` completed 232 tasks successfully. |
+| Independent closure `npm run lint` | Node 24.19.0 | PASSED | 2026-10-22 13:28 +08:00 | ESLint exit 0, zero warnings, including the D11 harness. |
+| Independent closure TypeScript projects | TypeScript 6.0.3 | PASSED | 2026-10-22 13:29 +08:00 | `tsc -p tsconfig.app.json --noEmit` and `tsc -p tsconfig.spec.json --noEmit` both exit 0. |
+| Independent closure complete automated suite | Angular/Vitest | PASSED | 2026-10-22 13:40 +08:00 | Final: 16 files, 205 tests. Includes role-entry, API 404, map lifecycle/page cancellation, stale loads and mutation serialization. An intermediate rerun exposed two test-isolation assertions; the mutable native-platform flag and prior mock call were reset, then the complete suite passed. |
+| Independent closure production build | Angular 22.2.3 | PASSED (warning) | 2026-10-22 13:28 +08:00 | Initial bundle 922.47 kB; unchanged 700 kB warning and below 1 MB error budget; MapLibre remains lazy at 1.05 MB. |
+| D11 harness syntax / safety refusal | Node 24.19.0 | PASSED / BLOCKED | 2026-10-22 13:28 +08:00 | `node --check` passed. Unconfigured `npm run test:business` refused before network access as designed. Live run not attempted because Agent A PR #15 is open. |
+| `npm run cap:sync -- android`; `npx cap doctor android` | Capacitor 8.5.3 | PASSED | 2026-10-22 13:45 +08:00 | Final production assets copied; secure-storage 8.0.1 and App 8.0.1 plugins detected; doctor reports Android healthy. |
+| Android `lintDebug testDebugUnitTest assembleDebug` | Gradle 8.14.3; JDK 21.0.6; SDK compile/target 36, min 24 | PASSED | 2026-10-22 13:46 +08:00 | Final integrated assets: 232 tasks; lint clean; app unit tests passed; standard `flatDir` warning only. First invocation lacked `ANDROID_HOME`, then reran with the installed SDK path and passed. |
+| Android debug APK | Android debug build | PASSED | 2026-10-22 13:46 +08:00 | Final integrated APK: 5,081,750 bytes; SHA-256 `EEF1F8A66FDFCB03B593F04E3848D6353E4494DF452560C889267E45842A97C5`. |
+| Android device inventory | ADB 35.0.1 | OWNER_VERIFICATION_PENDING | 2026-10-22 13:32 +08:00 | `adb devices -l` returned no device/emulator; no device acceptance claimed. |
+| Independent closure dependency audit | npm 10.9.1 | PASSED runtime / 5 development findings | 2026-10-22 13:32 +08:00 | Production dependency audit has zero vulnerabilities. Full lockfile: 1 low, 3 moderate, 1 high in Vite/Capacitor CLI toolchains; proposed npm fixes downgrade direct packages and were not forced. |
+| Agent A gate recheck | GitHub | BLOCKED (expected) | 2026-10-22 13:27 +08:00 | G1 PR #12 and fixture PR #15 are both OPEN/MERGEABLE; heads `92ad34158e1c9fe840b7264b4c3912aec5eeb25b` and `be8d6d038d6f60e168684c28a3a057f78cbf6e89`. |
 | PR #7 push / GitHub state | GitHub | PASSED | 2026-10-22 12:09 +08:00 | Normal two-parent merge pushed without force; PR open, mergeable and GitGuardian passed. `1f9d6cc` is an ancestor of the branch. |
 | PR #7 post-merge `npm run lint` | Node 24.19.0 | PASSED | 2026-10-22 11:53 +08:00 | ESLint exit 0 after D6/D7 + D8–D10 reconciliation. |
 | `tsc -p tsconfig.app.json --noEmit`; `tsc -p tsconfig.spec.json --noEmit` | TypeScript 6.0.3 | PASSED | 2026-10-22 11:52 +08:00 | Both strict app and test projects passed. |
@@ -116,6 +136,38 @@
 - State: OWNER_VERIFICATION_PENDING; not required for documentation recovery.
 
 ## Activity log (newest first; preserve prior entries)
+### 2026-10-22 16:17 +08:00 — Claude takeover round 2: PR #8 correction recovered, verified and completed (`AGENT_D_PR8_ISOLATION_CORRECTED_READY_FOR_REVIEW`)
+- Action / reason: Directive VALRYDE-CLAUDE-D-TAKEOVER-ROUND2-001. Codex hit its usage limit after implementing the Agent G isolation correction locally; PR #8 still showed `1c7ac76`. Claude temporarily owns Agent D execution.
+- Checklist/issue: D11 integration-harness safety; no application feature behavior changed.
+- Files/config/services affected:
+  - **Recovered Codex work, preserved unchanged in intent:** `scripts/business-integration.mjs`, `scripts/business-integration-safety.mjs`, `scripts/business-integration-safety.test.mjs`, `package.json` (`test:harness-safety` and the check pipeline), `docs/testing/BUSINESS_INTEGRATION_PREPARATION.md`, and Codex's 16:04 status entry. Nothing was reset, stashed, rebased or force-pushed. Codex is credited for the correction design and implementation.
+  - **Claude addition:** the guard and `fetch` now live together in one exported `dispatchHarnessRequest`, which is the harness's only network path. Two Node tests drive that real dispatch path with a transport spy (GET and `POST /auth/login` reach it; lowercase `post`, `PUT`/`PATCH`/`DELETE`, the route-assignment and GPS writes, `/auth/logout` and the path variants `/auth/login/../jeepneys` and `/auth/login?next=…` are refused before transport) and statically assert the harness has exactly one `fetch` reference. A sentence was added to the preparation doc.
+- Observed result (success/failure/rollback): No bypass was found in Codex's source; the added tests close the gap that the original tests exercised helpers rather than the harness dispatch.
+- Validation and evidence: See the Latest verification rows at 2026-10-22 16:17 +08:00.
+- Contracts / risks / dependencies: No backend, Agent A/B, database or Traccar change. Mutation probes remain fixture-blocked until Agent A/Tech Lead approve a runtime isolation attestation; PR #15 merging alone does not enable them.
+- Commit/PR link or SHA (if available): Existing [PR #8](https://github.com/erwin-io/valryde-mobile-driver-operator/pull/8); SHA in the PR. Not merged.
+- Next action / owner gate: Agent G/Tech Lead re-review of PR #8. Do not self-merge.
+
+### 2026-10-22 16:04 +08:00 — PR #8 harness isolation corrected (`AGENT_D_PR8_ISOLATION_CORRECTED_READY_FOR_REVIEW`)
+- Action / reason: Agent G found that loopback plus caller confirmation did not prove the API's database was disposable. Preserved the fixture IDs and expected 403/409 cases while removing both business write probes.
+- Checklist/issue: D11 integration safety; no application feature behavior changed.
+- Files/config/services affected: `scripts/business-integration.mjs`, new safety module and Node tests, package check pipeline, D11 preparation documentation and this status file. No Agent A/backend file or contract changed.
+- Observed result (success/failure/rollback): Cross-Operator isolation remains tested with scoped GET results. Fleet/group writes are rejected before `fetch`, even with loopback and spoofed caller attestation. Exact assignment/group payload and expected status fixtures remain recorded as `FIXTURE_BLOCKED` expectations.
+- Validation and evidence: 205 Angular tests plus 3 harness safety tests passed; safe-refusal transport count is zero; lint, strict typechecks, production build, audits, diff hygiene, Capacitor sync and Android lint/unit/debug build passed.
+- Contracts / risks / dependencies: Agent A exposes no approved runtime development-fixture identity contract. Mutation probes cannot be enabled merely because PR #15 merges; a separately approved attestation mechanism is required.
+- Commit/PR link or SHA (if available): Existing [mobile PR #8](https://github.com/erwin-io/valryde-mobile-driver-operator/pull/8); corrected SHA recorded after push. Not merged.
+- Next action / owner gate: Agent G/Tech Lead re-reviews PR #8. Do not self-merge.
+
+### 2026-10-22 13:33 +08:00 — Final independent UI closure (`AGENT_D_UI_INDEPENDENT_SCOPE_COMPLETE`)
+- Action / reason: Audited every Agent D ID against the latest merged main including PR #7, closed independent error/race/test gaps, prepared a fail-closed D11 executable, and rebuilt Android.
+- Checklist/issue: IDs 38–55; packages D1–D5.
+- Files/config/services affected: Shared 404 handling; stale-load epochs for dashboard/fleet lists/details; auth/MapLibre/fleet deterministic tests; `scripts/business-integration.mjs`; independent-scope and D11 test documentation; package test command; this status file. No backend or Agent B repository changed.
+- Observed result (success/failure/rollback): All independent client behavior is complete. D11 correctly remains blocked rather than being run against an unidentified database. No live GPS, assignment marker, membership removal, unassign or route-change contract was fabricated.
+- Validation and evidence: Lint, two strict TypeScript projects, 16 files/205 tests, production build, Capacitor sync/doctor, Android lint/unit tests/debug APK, runtime audit and diff check passed. APK evidence and development-only audit findings are recorded above.
+- Contracts / risks / dependencies: Exact G1/G2/G3/G4/G7, Agent B, fixture, Admin-data and owner-device gates are in `docs/testing/AGENT_D_INDEPENDENT_SCOPE_AUDIT.md`.
+- Commit/PR link or SHA (if available): Implementation commit `51c56a6ddbe0ee0d0b874b7549748b4247d53fd8`; [mobile PR #8](https://github.com/erwin-io/valryde-mobile-driver-operator/pull/8). Not merged.
+- Next action / owner gate: Tech Lead reviews the corrective PR. Owner runs the listed physical-device tests. Agent A PR #15 must merge before D11 seed/verify/test/cleanup on an isolated local database.
+
 ### 2026-10-22 12:08 +08:00 — PR #7 reconciled with merged D6/D7 (`AGENT_D_PR7_POST_MERGE_RECONCILED`)
 - Action / reason: Agent G directed a normal merge of PR #6's merged `main` (`1f9d6cc`) into existing PR #7 without force-pushing.
 - Checklist/issue: 40–41 and 47/49/50 coexistence; PR #7 integration.

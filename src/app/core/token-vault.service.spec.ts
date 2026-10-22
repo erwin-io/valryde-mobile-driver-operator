@@ -12,6 +12,7 @@ import { TokenVaultService } from './token-vault.service';
 
 describe('TokenVaultService', () => {
   beforeEach(() => {
+    native.value = true;
     vi.clearAllMocks();
     TestBed.resetTestingModule();
   });

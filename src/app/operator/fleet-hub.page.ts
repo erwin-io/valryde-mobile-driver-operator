@@ -43,6 +43,7 @@ import { FleetApiService } from '../core/fleet-api.service';
 })
 export class FleetHubPage {
   private readonly api = inject(FleetApiService);
+  private loadEpoch = 0;
   protected readonly jeepneyCount = signal<number | null>(null);
   protected readonly groupCount = signal<number | null>(null);
   protected readonly driverCount = signal<number | null>(null);
@@ -59,12 +60,14 @@ export class FleetHubPage {
   }
 
   protected async load(): Promise<void> {
+    const epoch = ++this.loadEpoch;
     // Counts are a convenience; on failure they stay "—" and each list shows its own error.
     const [jeepneys, groups, drivers] = await Promise.allSettled([
       firstValueFrom(this.api.listJeepneys()),
       firstValueFrom(this.api.listGroups()),
       firstValueFrom(this.api.listDrivers({ page: 1, pageSize: 1 })),
     ]);
+    if (epoch !== this.loadEpoch) return;
     this.jeepneyCount.set(jeepneys.status === 'fulfilled' ? jeepneys.value.length : null);
     this.groupCount.set(groups.status === 'fulfilled' ? groups.value.length : null);
     this.driverCount.set(drivers.status === 'fulfilled' ? drivers.value.pagination.total : null);

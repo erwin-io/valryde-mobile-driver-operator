@@ -128,6 +128,8 @@ import { StatusPillComponent } from '../shared/status-pill.component';
 export class GroupDetailPage {
   private readonly api = inject(FleetApiService);
   private entered = false;
+  private loadEpoch = 0;
+  private membersEpoch = 0;
   protected readonly groupId = inject(ActivatedRoute).snapshot.paramMap.get('id') ?? '';
   protected readonly loading = signal(true);
   protected readonly error = signal<string | null>(null);
@@ -162,20 +164,24 @@ export class GroupDetailPage {
   }
 
   protected async load(): Promise<void> {
+    const epoch = ++this.loadEpoch;
     this.loading.set(true);
     this.error.set(null);
     try {
       const group = (await firstValueFrom(this.api.listGroups())).find((g) => g.id === this.groupId) ?? null;
+      if (epoch !== this.loadEpoch) return;
       this.group.set(group);
       if (group) void this.loadMemberOptions();
     } catch (error: unknown) {
+      if (epoch !== this.loadEpoch) return;
       this.error.set(apiErrorMessage(error, 'This group could not be loaded.'));
     } finally {
-      this.loading.set(false);
+      if (epoch === this.loadEpoch) this.loading.set(false);
     }
   }
 
   protected async loadMemberOptions(): Promise<void> {
+    const epoch = ++this.membersEpoch;
     this.membersLoading.set(true);
     this.membersError.set(null);
     try {
@@ -183,12 +189,14 @@ export class GroupDetailPage {
         firstValueFrom(this.api.listDrivers({ status: 'ACTIVE', page: 1, pageSize: 100 })),
         firstValueFrom(this.api.listJeepneys()),
       ]);
+      if (epoch !== this.membersEpoch) return;
       this.drivers.set(drivers.drivers);
       this.jeepneys.set(jeepneys);
     } catch (error: unknown) {
+      if (epoch !== this.membersEpoch) return;
       this.membersError.set(apiErrorMessage(error, 'Group member controls could not be loaded.'));
     } finally {
-      this.membersLoading.set(false);
+      if (epoch === this.membersEpoch) this.membersLoading.set(false);
     }
   }
 

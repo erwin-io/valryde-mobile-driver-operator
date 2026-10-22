@@ -96,6 +96,7 @@ export class GroupsPage {
   private readonly api = inject(FleetApiService);
   private readonly router = inject(Router);
   private entered = false;
+  private loadEpoch = 0;
   protected readonly state = signal<'loading' | 'ready' | 'error'>('loading');
   protected readonly error = signal('');
   protected readonly groups = signal<FleetGroup[]>([]);
@@ -112,11 +113,15 @@ export class GroupsPage {
   }
 
   protected async load(): Promise<void> {
+    const epoch = ++this.loadEpoch;
     this.state.set('loading');
     try {
-      this.groups.set(await firstValueFrom(this.api.listGroups()));
+      const groups = await firstValueFrom(this.api.listGroups());
+      if (epoch !== this.loadEpoch) return;
+      this.groups.set(groups);
       this.state.set('ready');
     } catch (error: unknown) {
+      if (epoch !== this.loadEpoch) return;
       this.error.set(apiErrorMessage(error, 'Your groups could not be loaded.'));
       this.state.set('error');
     }
