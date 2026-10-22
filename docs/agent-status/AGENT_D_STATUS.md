@@ -4,8 +4,8 @@
 - Updated at (ISO 8601, Asia/Manila): 2026-10-22T13:33:00+08:00
 - Agent / module: D — Driver/Operator Mobile
 - Repository: `valryde-mobile-driver-operator`
-- Branch / implementation SHA: `feat/agent-d-independent-ui-closure`; based on merged `origin/main` at `c8d0580e69dabbd28799737e01c84ead93ad5884` (includes PR #7).
-- GitHub issues / PRs: Mobile PRs #1–#7 merged. Agent A G1 PR #12 and fixture PR #15 remain open/green.
+- Branch / implementation SHA: `feat/agent-d-independent-ui-closure`; implementation commit `51c56a6ddbe0ee0d0b874b7549748b4247d53fd8`; based on merged `origin/main` at `c8d0580e69dabbd28799737e01c84ead93ad5884` (includes PR #7).
+- GitHub issues / PRs: Mobile PRs #1–#7 merged; corrective PR #8 open for review. Agent A G1 PR #12 and fixture PR #15 remain open/green.
 - Checklist IDs: 38–55
 - Implementation progress: All independently deliverable UI behavior and deterministic coverage for IDs 38–55 complete; D11 remains `BLOCKED_BY_AGENT_A_PR_15`; live G1 remains gated on Agent A PR #12.
 - Tech Lead review decision (if actually issued): Final independent UI closure authorized; no approval to self-merge.
@@ -134,7 +134,7 @@
 - Observed result (success/failure/rollback): All independent client behavior is complete. D11 correctly remains blocked rather than being run against an unidentified database. No live GPS, assignment marker, membership removal, unassign or route-change contract was fabricated.
 - Validation and evidence: Lint, two strict TypeScript projects, 16 files/205 tests, production build, Capacitor sync/doctor, Android lint/unit tests/debug APK, runtime audit and diff check passed. APK evidence and development-only audit findings are recorded above.
 - Contracts / risks / dependencies: Exact G1/G2/G3/G4/G7, Agent B, fixture, Admin-data and owner-device gates are in `docs/testing/AGENT_D_INDEPENDENT_SCOPE_AUDIT.md`.
-- Commit/PR link or SHA (if available): Corrective branch `feat/agent-d-independent-ui-closure`; PR/HEAD recorded after push.
+- Commit/PR link or SHA (if available): Implementation commit `51c56a6ddbe0ee0d0b874b7549748b4247d53fd8`; [mobile PR #8](https://github.com/erwin-io/valryde-mobile-driver-operator/pull/8). Not merged.
 - Next action / owner gate: Tech Lead reviews the corrective PR. Owner runs the listed physical-device tests. Agent A PR #15 must merge before D11 seed/verify/test/cleanup on an isolated local database.
 
 ### 2026-10-22 12:08 +08:00 — PR #7 reconciled with merged D6/D7 (`AGENT_D_PR7_POST_MERGE_RECONCILED`)
