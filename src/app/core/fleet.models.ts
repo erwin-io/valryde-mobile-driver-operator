@@ -1,4 +1,4 @@
-// Agent A fleet / workflow / transit DTOs (OpenAPI audit, origin/main 827738c). Display-only: the server owns every status.
+// Agent A fleet / workflow / transit DTOs. Display-only: the server owns every status.
 export type JeepneyStatus = 'DRAFT' | 'PENDING_APPROVAL' | 'APPROVED' | 'ACTIVE' | 'INACTIVE' | 'REJECTED';
 export type RecordStatus = 'ACTIVE' | 'INACTIVE';
 export type ApplicationStatus = 'PENDING' | 'APPROVED' | 'REJECTED';
@@ -119,6 +119,37 @@ export interface Pagination {
   pageSize: number;
   total: number;
   totalPages: number;
+}
+
+/** Approved G1 directory DTO (Agent A PR #8 contract; implementation PR #12 under review). */
+export interface DriverDirectoryEntry {
+  driverId: string;
+  userId: string;
+  email: string;
+  displayName: string;
+  status: 'ACTIVE' | 'DISABLED';
+  userStatus: 'ACTIVE' | 'DISABLED';
+  emailVerified: boolean;
+  operatorId: string | null;
+  activeJeepneyId: string | null;
+  groupIds: string[];
+  createdAt: string;
+}
+
+export interface DriverDirectoryQuery {
+  q?: string;
+  status?: DriverDirectoryEntry['status'];
+  page?: number;
+  pageSize?: number;
+}
+
+export interface DriverAssignment {
+  id: string;
+  driverId: string;
+  jeepneyId: string;
+  assignedByUserId: string;
+  activeFrom: string;
+  activeTo: string | null;
 }
 
 /** Exactly one target; the server rejects both or neither (400). */

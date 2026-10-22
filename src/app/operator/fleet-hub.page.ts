@@ -26,9 +26,10 @@ import { FleetApiService } from '../core/fleet-api.service';
             <ion-label><h2>Fleet groups</h2><p>Organize jeepneys and drivers</p></ion-label>
             <ion-note slot="end">{{ groupCount() ?? '—' }}</ion-note>
           </ion-item>
-          <ion-item [disabled]="true">
+          <ion-item routerLink="/operator/fleet/drivers" detail="true">
             <ion-icon name="person-outline" slot="start" aria-hidden="true" />
-            <ion-label class="ion-text-wrap"><h2>Drivers</h2><p>Coming when VALRYDE can list your drivers</p></ion-label>
+            <ion-label class="ion-text-wrap"><h2>Drivers</h2><p>Directory and vehicle assignments</p></ion-label>
+            <ion-note slot="end">{{ driverCount() ?? '—' }}</ion-note>
           </ion-item>
           <ion-item [disabled]="true">
             <ion-icon name="map-outline" slot="start" aria-hidden="true" />
@@ -44,6 +45,7 @@ export class FleetHubPage {
   private readonly api = inject(FleetApiService);
   protected readonly jeepneyCount = signal<number | null>(null);
   protected readonly groupCount = signal<number | null>(null);
+  protected readonly driverCount = signal<number | null>(null);
   private entered = false;
 
   constructor() {
@@ -58,8 +60,13 @@ export class FleetHubPage {
 
   protected async load(): Promise<void> {
     // Counts are a convenience; on failure they stay "—" and each list shows its own error.
-    const [jeepneys, groups] = await Promise.allSettled([firstValueFrom(this.api.listJeepneys()), firstValueFrom(this.api.listGroups())]);
+    const [jeepneys, groups, drivers] = await Promise.allSettled([
+      firstValueFrom(this.api.listJeepneys()),
+      firstValueFrom(this.api.listGroups()),
+      firstValueFrom(this.api.listDrivers({ page: 1, pageSize: 1 })),
+    ]);
     this.jeepneyCount.set(jeepneys.status === 'fulfilled' ? jeepneys.value.length : null);
     this.groupCount.set(groups.status === 'fulfilled' ? groups.value.length : null);
+    this.driverCount.set(drivers.status === 'fulfilled' ? drivers.value.pagination.total : null);
   }
 }

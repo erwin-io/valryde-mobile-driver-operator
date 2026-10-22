@@ -5,7 +5,7 @@
 **Application:** Valryde Operator
 **Repository:** `valryde-mobile-driver-operator`
 **Canonical workspace:** `C:\Development\valryde\valryde-mobile-driver-operator`
-**State:** Development authorized; `UX_CONTRACT_READY` reported (UX acceptance pending); frontend foundation released and submitted for review
+**State:** D6–D11 Driver/Fleet Expansion authorized; D6/D7 in PR #6; D8–D10 review preparation active; D11 backend-fixture gated
 
 ## Mission
 
@@ -69,11 +69,12 @@ The backend snapshot inspected during bootstrap exposes auth, user profile, jeep
 6. Approved transit assignment/change request and vehicle/GPS application flows.
 7. Role-isolation, offline/reconnect, stale-state, and acceptance tests.
 
-## Frontend execution checkpoints
+## Active expansion checkpoint
 
-1. `UX_CONTRACT_READY` — screen inventory, role navigation/flows, design system/components, Agent A dependencies, Agent B gates and screen acceptance criteria. Reported; detailed acceptance pending.
-2. Application scaffold and shared shell (`FRONTEND_FOUNDATION_READY`) — released 2026-10-21. Current checkpoint.
-3. Authorized vertical feature slices — follow stable contracts and checklist priorities.
+- D6/D7: `feat/40-41-driver-route-map-foundation`, PR #6. Static official route geometry and Android debug build are reviewable; no phone GPS or live tracking is claimed.
+- D8–D10: `feat/49-50-driver-group-management`. Operator-scoped G1 directory/search/counts, confirmed Driver assignment and member-addition UI are implemented with deterministic tests. Use `driverId`, never `userId`.
+- D11: do not run until Agent A fixture PR #15 merges. G1 live verification also waits for API PR #12 to merge/deploy.
+- Remaining: G2 membership read/removal, G3 Driver self-assignment marker, G4 unassign and all Agent B tracking/compliance contracts.
 
 ## Reporting
 
@@ -86,6 +87,6 @@ Do not create separate status histories. Do not claim Tech Lead acceptance or ha
 
 The initial bootstrap was mistakenly prepared under `C:\Development\valryde\valryde-mobile-operator` following an incorrect Tech Lead path. That folder remains untouched as a recoverable source. On 2026-10-21 the documentation was reconciled into this existing canonical Git repository; the incorrect path is retained here as historical evidence, not as an active workspace.
 
-## Next action
+## Claude resumption
 
-Tech Lead reviews the frontend foundation PR and `docs/ui-ux/SURFACE_CLASSIFICATION.md`. Do not implement feature slices until the next frontend checkpoint is explicitly released.
+Continue from the committed/pushed D8–D10 branch and its PR, then execute D11 only after PR #15 is merged. Preserve Codex's tests and status entries. Do not restart D6/D7 or claim unmerged backend integration; do not self-merge.

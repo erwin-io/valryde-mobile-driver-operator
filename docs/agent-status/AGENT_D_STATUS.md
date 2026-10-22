@@ -1,18 +1,18 @@
 # VALRYDE — Agent D Status
 
 ## Current snapshot
-- Updated at (ISO 8601, Asia/Manila): 2026-10-22T07:58T:00+08:00
+- Updated at (ISO 8601, Asia/Manila): 2026-10-22T10:33:30+08:00
 - Agent / module: D — Driver/Operator Mobile
 - Repository: `valryde-mobile-driver-operator`
-- Branch / HEAD SHA: `feat/55-gps-setup-workflows` stacked on `feat/48-50-operator-fleet` (PR #4) → `feat/38-46-account-security` (PR #3) → `main` @ `9921ee2`
-- GitHub issues / PRs: PR #1, #2 merged. Batch: PR #3 (D1) → PR #4 (D2/D3/D5, stacked) → GPS/transit PR (D4, stacked); see activity log.
+- Branch / HEAD SHA: `feat/49-50-driver-group-management` from canonical `main` @ `f0f57bb`; uncommitted D8–D10 review slice at snapshot time.
+- GitHub issues / PRs: PRs #1–#5 merged. D6/D7 is open in PR #6. D8–D10 PR pending branch push; Agent A G1 PR #12 and fixture PR #15 remain open/green.
 - Checklist IDs: 38–55
-- Implementation progress: READY_FOR_REVIEW (`AGENT_D_INDEPENDENT_UI_BATCH_READY`)
-- Tech Lead review decision (if actually issued): PR #2 accepted and merged at `9921ee2`; independent UI batch not yet reviewed
-- Current objective: Large independent UI batch: D1 account security (38/46), D2 vehicles (48), D3 groups (50), D4 GPS/transit (55/52), D5 shell data (39/47), using only verified Agent A contracts.
-- Last confirmed result: D1–D5 real Agent A runs passed within dev-data limits; 146/146 unit tests; build 920.87 kB (warning only); test accounts retired.
-- Next concrete action: Agent G review of PR #3, then #4 and the GPS/transit PR in order. Owner/Admin: publish an ACTIVE route and approve the test application to run the gated happy paths.
-- Blocked by / decision owner: Agent A G1 (drivers list), G2 (membership), G3 (assignment marker), G4 (unassign), G7 (route change requests); Admin-only approvals/GPS transitions; Agent B tracking; owner: devices, Gmail, dev-record cleanup.
+- Implementation progress: D6/D7 READY_FOR_REVIEW in PR #6; D8–D10 implementation and deterministic tests complete, PR preparation active; D11 BLOCKED_BY_FIXTURE_PR_15.
+- Tech Lead review decision (if actually issued): D6–D11 expansion authorized; no review acceptance or merge issued for PR #6 or this branch.
+- Current objective: D8 checklist 49, D9 checklist 50 and D10 checklist 47 using the exact approved G1 DTO while API PR #12 remains unmerged.
+- Last confirmed result: lint clean; 155/155 unit/component tests; production build 920.96 kB (existing warning only); `git diff --check` passed.
+- Next concrete action: commit/push D8–D10, open a review PR, then wait for Agent A PR #15 before D11 isolated business integration.
+- Blocked by / decision owner: Agent A PR #12 merge/deploy for live G1; PR #15 merge for D11 fixtures; G2 membership read/removal; G3 assignment marker; G4 unassign; Agent B tracking; owner: physical device testing.
 - Dependencies / affected agents: Agent A for auth/RBAC/fleet/route/application APIs; Agent B for tracking/latest-state/compliance/realtime; Agent E for Admin-owned route and GPS operations; Agent F for device runbooks; Tech Lead for shared-contract approval and synchronized governance correction.
 
 ## Checklist coverage
@@ -20,17 +20,17 @@
 |---:|---|---|---|---|
 | 38 | Driver Signup / Login / Profile | IN_PROGRESS (D1 READY_FOR_REVIEW) | Sign-in/register, verify email, forgot/reset password, Account (server profile, sign-out with revocation), secure refresh-token vault, restore; real Agent A tests in `docs/testing/ACCOUNT_SESSION_INTEGRATION.md` | Profile edit/security (S11/S12), native device verification |
 | 39 | My Jeepney | IN_PROGRESS (static) | Driver home lists accessible jeepneys + server route summary | Active-assignment marker G3 |
-| 40 | Assigned Transit Route & Direction | NOT_STARTED | Planning documentation only | Consume backend effective-route contract when authorized |
-| 41 | Driver Route Guidance Map | NOT_STARTED | Planning documentation only | Development directive and map/tracking contracts required |
+| 40 | Assigned Transit Route & Direction | READY_FOR_REVIEW (D6) | Authorized vehicle route detail in PR #6; server resolver source/endpoints/statuses | Tech Lead review; G3 still gates active-assignment identity |
+| 41 | Driver Route Guidance Map | READY_FOR_REVIEW (D7) | Static official MapLibre geometry, camera fit/recenter, invalid/offline/lifecycle tests; Android debug build in PR #6 | Tech Lead review; Agent B gates live vehicle data |
 | 42 | GPS Device-Based Own Location | NOT_STARTED | Planning documentation only | Approved latest-state client DTO required |
 | 43 | Route Compliance Status & Alert | NOT_STARTED | Planning documentation only | Approved backend compliance contract required |
 | 44 | Same-Group Jeepneys Live Map | NOT_STARTED | Planning documentation only | Scoped REST/realtime contracts required |
 | 45 | Groupmate Status & Details | NOT_STARTED | Planning documentation only | Scoped groupmate contract required |
 | 46 | Operator Signup / Login / Profile | IN_PROGRESS (D1 READY_FOR_REVIEW) | Same shared account/session slice, verified against the real API as OPERATOR | Profile edit/security (S11/S12), native device verification |
-| 47 | Operator Dashboard | IN_PROGRESS (counts) | Jeepney/approval/group counts from scoped lists | Driver count G1; tracking tiles Agent B |
+| 47 | Operator Dashboard | READY_FOR_REVIEW (D10 partial) | Existing counts preserved; G1 pagination total supplies Driver count with independent failure handling | Live G1 pass awaits PR #12; tracking tiles Agent B |
 | 48 | My Jeepneys, Applications & Details | IN_PROGRESS (D2 READY_FOR_REVIEW) | Jeepney list/create/edit/detail, application submit/status, effective route; `docs/testing/OPERATOR_FLEET_INTEGRATION.md` | GPS section (D4); driver assignment gated on G1 |
-| 49 | Driver Management & Assignment | NOT_STARTED | Planning documentation only | Existing fleet routes identified; DTO verification pending |
-| 50 | Fleet Group Management | IN_PROGRESS (D3 READY_FOR_REVIEW) | Group list/create/edit/status | Membership gated on G1/G2 |
+| 49 | Driver Management & Assignment | READY_FOR_REVIEW (D8) | Scoped directory/search/pagination, eligibility, current assignment, explicit confirmation, `driverId` mutation tests | Live G1 pass awaits Agent A PR #12 merge/deploy; G4 unassign absent |
+| 50 | Fleet Group Management | READY_FOR_REVIEW (D9 partial) | Existing group CRUD plus Driver/jeepney additions; known Driver memberships from G1 `groupIds` | Complete membership reads/removal remain G2 |
 | 51 | Group Live Tracking | NOT_STARTED | Planning documentation only | Scoped REST/realtime contracts required |
 | 52 | Transit Assignment, Details & Route Change Request | IN_PROGRESS (D4 READY_FOR_REVIEW) | Official route catalogue/detail, direction assignment to own jeepney/group | Real success needs an Admin-published route; route change requests gated (G7) |
 | 53 | Route Compliance Overview | NOT_STARTED | Planning documentation only | Compliance API/DTO required |
@@ -40,6 +40,11 @@
 ## Latest verification
 | Command / check | Environment | Result | Date/time | Evidence / notes |
 |---|---|---|---|---|
+| Agent A gate recheck (`gh pr view 12`, `gh pr view 15`) | GitHub | BLOCKED (expected) | 2026-10-22 10:32 +08:00 | Both PRs open, mergeable and API CI/GitGuardian green. G1 client prep is review-only; D11 not run. |
+| D8–D10 `npm run lint` | Node project toolchain | PASSED | 2026-10-22 10:31 +08:00 | ESLint exit 0, zero warnings. |
+| D8–D10 `npm run test` | Angular/Vitest | PASSED | 2026-10-22 10:32 +08:00 | 11 files, 155 tests. First run had two assertion-only mismatches; corrected and rerun green. |
+| D8–D10 `npm run build` | Angular production build | PASSED (warning) | 2026-10-22 10:32 +08:00 | Initial bundle 920.96 kB; existing 700 kB warning, below 1 MB error budget. |
+| D8–D10 `git diff --check` | Canonical workspace | PASSED | 2026-10-22 10:33 +08:00 | Exit 0. |
 | `git status --short --branch` | Canonical workspace before recovery | PASSED | 2026-10-21 02:48 +08:00 | Clean `main...origin/main` before edits. |
 | `git remote -v` | Canonical workspace | PASSED | 2026-10-21 02:48 +08:00 | Fetch/push both use expected GitHub `.git` URL. |
 | Branch and HEAD inspection | Canonical workspace | PASSED | 2026-10-21 02:53 +08:00 | Focused branch created from `main` at `ab49017d...`. |
@@ -92,6 +97,16 @@
 - State: OWNER_VERIFICATION_PENDING; not required for documentation recovery.
 
 ## Activity log (newest first; preserve prior entries)
+### 2026-10-22 10:33 +08:00 — Codex D8–D10 implementation complete; PR preparation active
+- Action / reason: Continued the Tech Lead-approved temporary takeover from the actual D6–D11 state. Preserved Claude's merged D1–D5 work and credited it; did not restart completed slices.
+- Checklist/issue: 49 (D8), 50 (D9 partial), 47 (D10 partial).
+- Files/config/services affected: G1 DTO and typed client calls; Driver directory page/route; vehicle assignment confirmation; group Driver/jeepney additions; Fleet hub/dashboard Driver counts; component/HTTP tests; contract/classification/testing docs; governance/resumption docs. Agent A was inspected read-only and not modified.
+- Observed result (success/failure/rollback): Operator-scoped directory/search/pagination, eligibility, current assignment and reassignment warning are reviewable. Mutations use `driverId`, never `userId`. Group additions are enabled without fabricating complete membership; G2 limits are explicit. Existing dashboard counts survive an unavailable G1 request. First test run had two assertion-only failures and was corrected without weakening production behavior.
+- Validation and evidence: lint passed; 155/155 tests passed; production build passed at 920.96 kB with the existing warning; diff hygiene passed. Details: `docs/testing/DRIVER_GROUP_MANAGEMENT.md`.
+- Contracts / risks / dependencies: Agent A G1 PR #12 is open/mergeable/green but unmerged, so no live G1 pass is claimed. Fixture PR #15 is open/mergeable/green but unmerged, so D11 was not started. G2/G3/G4 and Agent B gates remain.
+- Commit/PR link or SHA (if available): Branch `feat/49-50-driver-group-management` from `f0f57bb`; commit/PR pending.
+- Next action / owner gate: Commit and open review PR; Agent A/Tech Lead merges/deploys #12 for live G1 and merges #15 before D11.
+
 ### 2026-10-22 07:58 +08:00 — D4 GPS setup and transits (independent UI batch, part 3) — AGENT_D_INDEPENDENT_UI_BATCH_READY
 - Action / reason: Batch package D4.
 - Checklist/issue: 55, 52 (partial).

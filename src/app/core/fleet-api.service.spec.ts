@@ -75,6 +75,37 @@ describe('FleetApiService', () => {
     updated.flush({ group: {} });
   });
 
+  it('passes only approved Operator-safe filters to the G1 Driver directory', () => {
+    api.listDrivers({ q: 'juan', status: 'ACTIVE', page: 2, pageSize: 10 }).subscribe();
+    const pending = http.expectOne((request) => request.url === '/api/drivers');
+    expect(pending.request.method).toBe('GET');
+    expect(pending.request.params.toString()).toBe('q=juan&status=ACTIVE&page=2&pageSize=10');
+    expect(pending.request.params.has('operatorId')).toBe(false);
+    expect(pending.request.params.has('associated')).toBe(false);
+    pending.flush({ drivers: [], pagination: { page: 2, pageSize: 10, total: 0, totalPages: 0 } });
+  });
+
+  it('assigns the Driver business ID, never userId', () => {
+    api.assignDriver('j/1', 'driver-1').subscribe();
+    const pending = http.expectOne('/api/jeepneys/j%2F1/driver-assignment');
+    expect(pending.request.method).toBe('POST');
+    expect(pending.request.body).toEqual({ driverId: 'driver-1' });
+    expect(pending.request.body).not.toHaveProperty('userId');
+    pending.flush({ assignment: {} });
+  });
+
+  it('adds Driver and jeepney business IDs to a group', () => {
+    api.addDriverToGroup('g/1', 'driver-1').subscribe();
+    const driver = http.expectOne('/api/fleet-groups/g%2F1/drivers');
+    expect(driver.request.body).toEqual({ driverId: 'driver-1' });
+    driver.flush({ message: 'Driver added' });
+
+    api.addJeepneyToGroup('g/1', 'jeepney-1').subscribe();
+    const jeepney = http.expectOne('/api/fleet-groups/g%2F1/jeepneys');
+    expect(jeepney.request.body).toEqual({ jeepneyId: 'jeepney-1' });
+    jeepney.flush({ message: 'Jeepney added' });
+  });
+
   it('submits a GPS request for an application only', () => {
     api.submitGpsRequest('a-1').subscribe();
     const pending = http.expectOne('/api/gps-setup-requests');

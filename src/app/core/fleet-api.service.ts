@@ -5,6 +5,9 @@ import { map, type Observable } from 'rxjs';
 import { environment } from '../../environments/environment';
 import type {
   EffectiveRouteDirection,
+  DriverAssignment,
+  DriverDirectoryEntry,
+  DriverDirectoryQuery,
   FleetGroup,
   FleetGroupCreate,
   FleetGroupUpdate,
@@ -26,6 +29,20 @@ export class FleetApiService {
 
   listJeepneys(): Observable<Jeepney[]> {
     return this.http.get<{ jeepneys: Jeepney[] }>(`${this.api}/jeepneys`).pipe(map((r) => r.jeepneys));
+  }
+
+  /** G1 OPERATOR directory. Scope is derived from the bearer session; never send operatorId/associated. */
+  listDrivers(query: DriverDirectoryQuery = {}): Observable<{ drivers: DriverDirectoryEntry[]; pagination: Pagination }> {
+    let params = new HttpParams();
+    for (const [key, value] of Object.entries(query)) if (value !== undefined && value !== '') params = params.set(key, String(value));
+    return this.http.get<{ drivers: DriverDirectoryEntry[]; pagination: Pagination }>(`${this.api}/drivers`, { params });
+  }
+
+  /** Uses the Driver business identifier from G1, never userId. The server replaces any active assignment. */
+  assignDriver(jeepneyId: string, driverId: string): Observable<DriverAssignment> {
+    return this.http
+      .post<{ assignment: DriverAssignment }>(`${this.api}/jeepneys/${encodeURIComponent(jeepneyId)}/driver-assignment`, { driverId })
+      .pipe(map((response) => response.assignment));
   }
 
   createJeepney(input: JeepneyCreate): Observable<Jeepney> {
@@ -58,6 +75,18 @@ export class FleetApiService {
     return this.http
       .patch<{ group: FleetGroup }>(`${this.api}/fleet-groups/${encodeURIComponent(id)}`, input)
       .pipe(map((r) => r.group));
+  }
+
+  addDriverToGroup(groupId: string, driverId: string): Observable<string> {
+    return this.http
+      .post<{ message: string }>(`${this.api}/fleet-groups/${encodeURIComponent(groupId)}/drivers`, { driverId })
+      .pipe(map((response) => response.message));
+  }
+
+  addJeepneyToGroup(groupId: string, jeepneyId: string): Observable<string> {
+    return this.http
+      .post<{ message: string }>(`${this.api}/fleet-groups/${encodeURIComponent(groupId)}/jeepneys`, { jeepneyId })
+      .pipe(map((response) => response.message));
   }
 
   listApplications(): Observable<VehicleApplication[]> {

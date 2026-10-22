@@ -13,7 +13,7 @@ Do not initialize a replacement repository, clone over this workspace, or commit
 
 ## Current state
 
-The Tech Lead authorized Agent D development on 2026-10-21. `UX_CONTRACT_READY` documentation is reported for review, and the frontend foundation stage is released: Ionic/Angular/Capacitor scaffold, shared shell, role route groups, authentication against verified Agent A contracts, shared UI states and initial role home layouts. Feature slices await the next checkpoint.
+The Tech Lead authorized the D6–D11 Driver/Fleet Expansion release on 2026-10-22. D6/D7 static authorized-route/map work is in PR #6. D8–D10 Driver directory, assignment, partial group membership and Driver counts are prepared against Agent A's approved G1 contract; live integration remains gated until API PR #12 merges. D11 remains gated until fixture PR #15 merges.
 
 ## Ownership
 
@@ -60,6 +60,7 @@ Versions are pinned exactly in `package.json` and locked by `package-lock.json`.
 - `docs/ui-ux/SURFACE_CLASSIFICATION.md`
 - `docs/architecture/BUNDLE_BUDGET.md`
 - `docs/testing/ACCOUNT_SESSION_INTEGRATION.md`
+- `docs/testing/DRIVER_GROUP_MANAGEMENT.md`
 - `docs/evidence/frontend-foundation/` (screenshot evidence)
 
 ## Directive deliverable mapping
