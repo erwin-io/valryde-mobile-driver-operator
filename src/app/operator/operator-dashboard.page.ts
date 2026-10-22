@@ -58,6 +58,10 @@ import { StatePanelComponent } from '../shared/state-panel.component';
             }
           </ion-list>
         </section>
+        <ion-list inset="true">
+          <ion-item routerLink="/operator/compliance" [disabled]="foundationPreview()" detail="true"><ion-label><h2>Fleet compliance</h2><p>Current availability and tracking status</p></ion-label></ion-item>
+          <ion-item routerLink="/operator/transits/summary" [disabled]="foundationPreview()" detail="true"><ion-label><h2>Transit summary</h2><p>Tracking totals remain unknown until connected</p></ion-label></ion-item>
+        </ion-list>
       </main>
     </ion-content>
   `,

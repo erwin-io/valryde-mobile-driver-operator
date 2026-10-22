@@ -154,3 +154,12 @@ export interface DriverAssignment {
 
 /** Exactly one target; the server rejects both or neither (400). */
 export type RouteAssignmentTarget = { jeepneyId: string } | { groupId: string };
+
+/** Merged G2 privacy-minimized membership union. No email/userId/provider fields. */
+export type FleetGroupMember = {
+  memberType: 'DRIVER'; driverId: string; displayName: string;
+  status: 'ACTIVE' | 'DISABLED'; activeJeepneyId: string | null; joinedAt: string;
+} | {
+  memberType: 'JEEPNEY'; jeepneyId: string; plateNo: string; colorHex: string;
+  description: string | null; status: JeepneyStatus; activeDriverId: string | null; joinedAt: string;
+};

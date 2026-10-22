@@ -1,20 +1,16 @@
 import { TestBed } from '@angular/core/testing';
 
-const native = vi.hoisted(() => ({ value: true }));
-const storage = vi.hoisted(() => ({ get: vi.fn(), set: vi.fn(), remove: vi.fn() }));
-vi.mock('@capacitor/core', () => ({ Capacitor: { isNativePlatform: () => native.value } }));
-vi.mock('@aparajita/capacitor-secure-storage', () => ({
-  SecureStorage: storage,
-  KeychainAccess: { whenUnlockedThisDeviceOnly: 1 },
-}));
+const native = { value: true };
+const storage = { get: vi.fn(), set: vi.fn(), remove: vi.fn() };
 
-import { TokenVaultService } from './token-vault.service';
+import { TOKEN_VAULT_PLATFORM, TokenVaultService } from './token-vault.service';
 
 describe('TokenVaultService', () => {
   beforeEach(() => {
     native.value = true;
     vi.clearAllMocks();
     TestBed.resetTestingModule();
+    TestBed.configureTestingModule({ providers: [{ provide: TOKEN_VAULT_PLATFORM, useValue: { isNativePlatform: () => native.value, storage } }] });
   });
 
   it('stores the refresh token device-only and never iCloud-synced on native platforms', async () => {

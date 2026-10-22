@@ -9,6 +9,7 @@ import type {
   DriverDirectoryEntry,
   DriverDirectoryQuery,
   FleetGroup,
+  FleetGroupMember,
   FleetGroupCreate,
   FleetGroupUpdate,
   GpsSetupRequest,
@@ -26,6 +27,31 @@ import type {
 export class FleetApiService {
   private readonly http = inject(HttpClient);
   private readonly api = environment.apiBaseUrl;
+
+  /** G3 self context; broader list visibility must never imply assignment. */
+  currentAssignment(): Observable<DriverAssignment | null> {
+    return this.http.get<{ assignment: DriverAssignment | null }>(
+      `${this.api}/me/assignment`,
+    ).pipe(map((response) => response.assignment));
+  }
+
+  listGroupMembers(groupId: string, page = 1): Observable<{ members: FleetGroupMember[]; pagination: Pagination }> {
+    return this.http.get<{ members: FleetGroupMember[]; pagination: Pagination }>(
+      `${this.api}/fleet-groups/${encodeURIComponent(groupId)}/members`,
+      { params: new HttpParams().set('page', page).set('pageSize', 100) },
+    );
+  }
+
+  removeGroupMember(groupId: string, member: FleetGroupMember): Observable<void> {
+    const collection = member.memberType === 'DRIVER' ? 'drivers' : 'jeepneys';
+    const id = member.memberType === 'DRIVER' ? member.driverId : member.jeepneyId;
+    return this.http.delete<void>(`${this.api}/fleet-groups/${encodeURIComponent(groupId)}/${collection}/${encodeURIComponent(id)}`);
+  }
+
+  unassignDriver(jeepneyId: string): Observable<DriverAssignment> {
+    return this.http.delete<{ assignment: DriverAssignment }>(`${this.api}/jeepneys/${encodeURIComponent(jeepneyId)}/driver-assignment`)
+      .pipe(map((response) => response.assignment));
+  }
 
   listJeepneys(): Observable<Jeepney[]> {
     return this.http.get<{ jeepneys: Jeepney[] }>(`${this.api}/jeepneys`).pipe(map((r) => r.jeepneys));

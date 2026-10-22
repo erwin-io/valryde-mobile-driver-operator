@@ -31,7 +31,7 @@ import { FleetApiService } from '../core/fleet-api.service';
             <ion-label class="ion-text-wrap"><h2>Drivers</h2><p>Directory and vehicle assignments</p></ion-label>
             <ion-note slot="end">{{ driverCount() ?? '—' }}</ion-note>
           </ion-item>
-          <ion-item [disabled]="true">
+          <ion-item routerLink="/operator/fleet/tracking" detail="true">
             <ion-icon name="map-outline" slot="start" aria-hidden="true" />
             <ion-label class="ion-text-wrap"><h2>Live fleet map</h2><p>Coming with GPS tracking</p></ion-label>
           </ion-item>

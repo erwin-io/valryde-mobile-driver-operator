@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, signal, type OnDestroy } from '@angular/core';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import {
@@ -179,7 +179,17 @@ type RouteState = { kind: 'loading' } | { kind: 'none' } | { kind: 'conflict' } 
               <app-state-panel panelId="jeepney-drivers-error" icon="people-outline" title="Driver assignment unavailable" [message]="driversError()!" actionLabel="Try again" (action)="loadDrivers()" />
             } @else {
               @if (currentDriver(); as assigned) {
-                <ion-list inset="true"><ion-item><ion-label><p>Currently assigned</p><h3>{{ assigned.displayName }}</h3><p>{{ assigned.email }}</p></ion-label></ion-item></ion-list>
+                <ion-list inset="true"><ion-item><ion-label><p>Currently assigned</p><h3>{{ assigned.displayName }}</h3><p>{{ assigned.email }}</p></ion-label>
+                  <ion-button slot="end" color="danger" fill="outline" [disabled]="assigning()" (click)="confirmUnassign.set(true); pendingDriver.set(null)">Unassign</ion-button>
+                </ion-item></ion-list>
+                @if (confirmUnassign()) {
+                  <div class="confirm-panel" role="group" aria-label="Confirm Driver unassignment">
+                    <h3>Unassign the current Driver from {{ j.plateNo }}?</h3>
+                    <p>This ends the current vehicle assignment. Group memberships remain. If another operator action changed the Driver, the server ends the assignment current at confirmation.</p>
+                    <ion-button fill="clear" [disabled]="assigning()" (click)="confirmUnassign.set(false)">Cancel</ion-button>
+                    <ion-button color="danger" [disabled]="assigning()" (click)="unassignDriver()">Confirm unassignment</ion-button>
+                  </div>
+                }
               } @else {
                 <p class="supporting-text">No active Driver assignment is reported for this jeepney.</p>
               }
@@ -201,7 +211,7 @@ type RouteState = { kind: 'loading' } | { kind: 'none' } | { kind: 'conflict' } 
                   @for (driver of eligibleDrivers(); track driver.driverId) {
                     <ion-item>
                       <ion-label class="ion-text-wrap"><h3>{{ driver.displayName }}</h3><p>{{ driverAssignmentLabel(driver) }}</p></ion-label>
-                      <ion-button slot="end" fill="outline" [disabled]="driver.activeJeepneyId === jeepneyId" (click)="pendingDriver.set(driver)">{{ driver.activeJeepneyId === jeepneyId ? 'Assigned' : 'Assign' }}</ion-button>
+                      <ion-button slot="end" fill="outline" [disabled]="assigning() || driver.activeJeepneyId === jeepneyId" (click)="pendingDriver.set(driver); confirmUnassign.set(false)">{{ driver.activeJeepneyId === jeepneyId ? 'Assigned' : 'Assign' }}</ion-button>
                     </ion-item>
                   }
                 </ion-list>
@@ -220,9 +230,10 @@ type RouteState = { kind: 'loading' } | { kind: 'none' } | { kind: 'conflict' } 
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class JeepneyDetailPage {
+export class JeepneyDetailPage implements OnDestroy {
   private readonly api = inject(FleetApiService);
   private entered = false;
+  private destroyed = false;
   private loadEpoch = 0;
   private driversEpoch = 0;
   protected readonly jeepneyId = inject(ActivatedRoute).snapshot.paramMap.get('id') ?? '';
@@ -241,6 +252,7 @@ export class JeepneyDetailPage {
   protected readonly driversError = signal<string | null>(null);
   protected readonly pendingDriver = signal<DriverDirectoryEntry | null>(null);
   protected readonly assigning = signal(false);
+  protected readonly confirmUnassign = signal(false);
   protected readonly assignmentError = signal<string | null>(null);
   protected readonly assignmentMessage = signal<string | null>(null);
   protected readonly applyForm = new FormGroup({
@@ -261,6 +273,13 @@ export class JeepneyDetailPage {
 
   constructor() {
     void this.load();
+  }
+
+  ngOnDestroy(): void {
+    this.destroyed = true;
+    ++this.loadEpoch; ++this.driversEpoch;
+    this.drivers.set([]); this.jeepney.set(null);
+    this.pendingDriver.set(null); this.confirmUnassign.set(false);
   }
 
   ionViewWillEnter(): void {
@@ -297,13 +316,20 @@ export class JeepneyDetailPage {
   }
 
   protected async loadDrivers(): Promise<void> {
+    if (this.destroyed) return;
     const epoch = ++this.driversEpoch;
     this.driversLoading.set(true);
     this.driversError.set(null);
     try {
-      const result = await firstValueFrom(this.api.listDrivers({ status: 'ACTIVE', page: 1, pageSize: 100 }));
+      const drivers: DriverDirectoryEntry[] = [];
+      for (let page = 1; ; page += 1) {
+        const result = await firstValueFrom(this.api.listDrivers({ page, pageSize: 100 }));
+        if (epoch !== this.driversEpoch) return;
+        drivers.push(...result.drivers);
+        if (page >= result.pagination.totalPages) break;
+      }
       if (epoch !== this.driversEpoch) return;
-      this.drivers.set(result.drivers);
+      this.drivers.set(drivers);
     } catch (error: unknown) {
       if (epoch !== this.driversEpoch) return;
       this.drivers.set([]);
@@ -318,6 +344,26 @@ export class JeepneyDetailPage {
     return driver.activeJeepneyId ? 'Currently assigned to another jeepney' : 'No active jeepney assignment';
   }
 
+  protected async unassignDriver(): Promise<void> {
+    if (this.destroyed || !this.confirmUnassign() || !this.currentDriver() || this.assigning()) return;
+    this.assigning.set(true);
+    this.assignmentMessage.set(null); this.assignmentError.set(null);
+    this.confirmUnassign.set(false);
+    this.pendingDriver.set(null);
+    ++this.driversEpoch;
+    try {
+      await firstValueFrom(this.api.unassignDriver(this.jeepneyId));
+      if (this.destroyed) return;
+      this.drivers.set([]);
+      await this.loadDrivers();
+      this.assignmentMessage.set(this.driversError() ? 'Unassignment accepted. Refresh the directory to confirm the current state.' : 'Driver unassigned. Assignment state refreshed.');
+    } catch (error: unknown) {
+      if (this.destroyed) return;
+      this.assignmentError.set(apiErrorMessage(error, 'The Driver could not be unassigned.'));
+      await this.loadDrivers();
+    } finally { this.assigning.set(false); }
+  }
+
   protected async assignDriver(): Promise<void> {
     const driver = this.pendingDriver();
     if (!driver || this.assigning()) return;
@@ -327,8 +373,8 @@ export class JeepneyDetailPage {
     try {
       await firstValueFrom(this.api.assignDriver(this.jeepneyId, driver.driverId));
       this.pendingDriver.set(null);
-      this.assignmentMessage.set(`${driver.displayName} is now assigned to this jeepney.`);
       await this.loadDrivers();
+      this.assignmentMessage.set(this.driversError() ? 'Assignment accepted. Refresh the directory to confirm the current state.' : 'Assignment accepted. Driver directory refreshed.');
     } catch (error: unknown) {
       this.assignmentError.set(apiErrorMessage(error, 'The Driver could not be assigned.'));
     } finally {

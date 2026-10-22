@@ -59,7 +59,7 @@ const rejected = (status: number, code: string, message = code) =>
 
 describe('DriverRouteMapPage (D03/D04)', () => {
   type Mock = ReturnType<typeof vi.fn>;
-  let api: { listJeepneys: Mock; effectiveRoute: Mock; getRoute: Mock };
+  let api: { currentAssignment: Mock; listJeepneys: Mock; effectiveRoute: Mock; getRoute: Mock };
   let map: Record<string, Mock>;
 
   const render = async (query: Record<string, string> = {}) => {
@@ -88,6 +88,7 @@ describe('DriverRouteMapPage (D03/D04)', () => {
   beforeEach(() => {
     const assigned = effective();
     api = {
+      currentAssignment: vi.fn(() => of({ jeepneyId: 'j-1' })),
       listJeepneys: vi.fn(() => of([jeepney()])),
       effectiveRoute: vi.fn(() => of(assigned)),
       getRoute: vi.fn(() => of(transitRoute(assigned))),
@@ -105,23 +106,25 @@ describe('DriverRouteMapPage (D03/D04)', () => {
     };
   });
 
-  it('requires an explicit choice when more than one server-scoped vehicle is visible', async () => {
+  it('selects only the server-confirmed assignment when multiple vehicles are visible', async () => {
     api.listJeepneys.mockReturnValue(of([jeepney(), jeepney({ id: 'j-2', plateNo: 'XYZ 789' })]));
     const { text } = await render();
-    expect(text()).toContain('Choose an authorized jeepney');
-    expect(text()).toContain('does not mark it as your active assignment');
-    expect(api.effectiveRoute).not.toHaveBeenCalled();
+    expect(text()).toContain('Current assignment confirmed');
+    expect(text()).not.toContain('XYZ 789');
+    expect(api.effectiveRoute).toHaveBeenCalledWith('j-1');
   });
 
-  it('honors a requested vehicle only when it is in the server-scoped list', async () => {
+  it('ignores a query-string vehicle that differs from the current assignment', async () => {
     api.listJeepneys.mockReturnValue(of([jeepney(), jeepney({ id: 'j-2', plateNo: 'XYZ 789' })]));
     await render({ jeepneyId: 'j-2' });
-    expect(api.effectiveRoute).toHaveBeenCalledWith('j-2');
+    expect(api.effectiveRoute).toHaveBeenCalledWith('j-1');
+    expect(api.effectiveRoute).not.toHaveBeenCalledWith('j-2');
   });
 
   it('shows unassigned and inaccessible states without fabricating route data', async () => {
-    api.listJeepneys.mockReturnValue(of([]));
-    expect((await render()).text()).toContain('No authorized vehicle');
+    api.currentAssignment.mockReturnValue(of(null));
+    expect((await render()).text()).toContain('No assigned vehicle');
+    expect(api.listJeepneys).not.toHaveBeenCalled();
     expect(api.effectiveRoute).not.toHaveBeenCalled();
   });
 
@@ -183,11 +186,13 @@ describe('DriverRouteMapPage (D03/D04)', () => {
     const first = jeepney();
     const second = jeepney({ id: 'j-2', plateNo: 'XYZ 789' });
     api.listJeepneys.mockReturnValue(of([first, second]));
-    api.effectiveRoute.mockImplementation((id: string) => (id === first.id ? firstRoute : of(effective())));
     const { fixture, settle, text } = await render();
-    const page = fixture.componentInstance as unknown as { selectVehicle(vehicle: Jeepney): Promise<void> };
-    const stale = page.selectVehicle(first);
-    await page.selectVehicle(second);
+    api.effectiveRoute.mockImplementation((id: string) => (id === first.id ? firstRoute : of(effective())));
+    const page = fixture.componentInstance as unknown as { loadVehicles(): Promise<void> };
+    api.currentAssignment.mockReturnValueOnce(of({ jeepneyId: 'j-1' })).mockReturnValueOnce(of({ jeepneyId: 'j-2' }));
+    const stale = page.loadVehicles();
+    await new Promise(resolve => setTimeout(resolve));
+    await page.loadVehicles();
     firstRoute.next(effective({ direction: { ...effective().direction, originName: 'Stale origin' } }));
     firstRoute.complete();
     await stale;
@@ -195,6 +200,14 @@ describe('DriverRouteMapPage (D03/D04)', () => {
     expect(text()).toContain('XYZ 789');
     expect(text()).toContain('Carbon – Lahug');
     expect(text()).not.toContain('Stale origin');
+  });
+
+  it.each([403, 404])('clears the assigned vehicle after a %s route access rejection', async status => {
+    api.effectiveRoute.mockReturnValue(rejected(status, status === 403 ? 'FORBIDDEN' : 'NOT_FOUND'));
+    const { text } = await render();
+    expect(text()).toContain('no longer available');
+    expect(text()).not.toContain('ABC 123');
+    expect(api.getRoute).not.toHaveBeenCalled();
   });
 
   it('makes a pending route response inert when the page is destroyed', async () => {

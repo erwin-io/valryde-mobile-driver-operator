@@ -1,3 +1,5 @@
+> 2026-10-23 rapid-delivery update: prior G1/G2/G3/G4 merge blockers below are historical. Current API main exposes all four; Codex implementation and current evidence are in [rapid delivery acceptance](../testing/AGENT_D_RAPID_DELIVERY_ACCEPTANCE.md). Tracking and physical-device gates remain.
+
 # Agent D — Contract Inventory for the Independent UI Batch
 
 **Date:** 2026-10-22 · **Sources:** merged `valryde-api` contracts plus approved G1 contract PR #8 and implementation PR #12 @ `92ad341` (read-only review; no checkout or edits). Sources used:

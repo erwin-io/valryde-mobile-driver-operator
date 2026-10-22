@@ -4,7 +4,7 @@ import { TestBed } from '@angular/core/testing';
 import type { Observable } from 'rxjs';
 
 import { FleetApiService } from './fleet-api.service';
-import type { JeepneyUpdate } from './fleet.models';
+import type { FleetGroupMember, JeepneyUpdate } from './fleet.models';
 
 describe('FleetApiService', () => {
   let api: FleetApiService;
@@ -29,6 +29,42 @@ describe('FleetApiService', () => {
     expect(pending.request.method).toBe('GET');
     pending.flush(body);
     expect(result).toEqual([]);
+  });
+
+  it('reads only the current Driver assignment, including a null result', () => {
+    let result: unknown = 'pending';
+    api.currentAssignment().subscribe(value => result = value);
+    const request = http.expectOne('/api/me/assignment');
+    expect(request.request.method).toBe('GET');
+    expect(request.request.params.keys()).toEqual([]);
+    request.flush({ assignment: null });
+    expect(result).toBeNull();
+  });
+
+  it('passes G2 pagination and encodes the group identifier', () => {
+    api.listGroupMembers('g/1', 2).subscribe();
+    const request = http.expectOne(r => r.url === '/api/fleet-groups/g%2F1/members');
+    expect(request.request.params.toString()).toBe('page=2&pageSize=100');
+    request.flush({ members: [], pagination: {} });
+  });
+
+  it.each(['DRIVER', 'JEEPNEY'] as const)('removes a %s membership with a bodyless encoded DELETE', memberType => {
+    const member = memberType === 'DRIVER' ? { memberType, driverId: 'd/1' } : { memberType, jeepneyId: 'j/1' };
+    api.removeGroupMember('g/1', member as FleetGroupMember).subscribe();
+    const request = http.expectOne('/api/fleet-groups/g%2F1/' + (memberType === 'DRIVER' ? 'drivers/d%2F1' : 'jeepneys/j%2F1'));
+    expect(request.request.method).toBe('DELETE');
+    expect(request.request.body).toBeNull();
+    request.flush(null, { status: 204, statusText: 'No Content' });
+  });
+
+  it('unassigns the current Driver using G4 and returns the closed assignment', () => {
+    let result: unknown;
+    api.unassignDriver('j/1').subscribe(value => result = value);
+    const request = http.expectOne('/api/jeepneys/j%2F1/driver-assignment');
+    expect(request.request.method).toBe('DELETE');
+    expect(request.request.body).toBeNull();
+    request.flush({ assignment: { id: 'a-1', activeTo: '2026-10-23T00:00:00Z' } });
+    expect(result).toEqual({ id: 'a-1', activeTo: '2026-10-23T00:00:00Z' });
   });
 
   it('creates a jeepney without an operatorId (ownership comes from the session)', () => {
