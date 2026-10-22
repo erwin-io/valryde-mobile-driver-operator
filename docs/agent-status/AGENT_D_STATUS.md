@@ -1,17 +1,17 @@
 # VALRYDE — Agent D Status
 
 ## Current snapshot
-- Updated at (ISO 8601, Asia/Manila): 2026-10-22T10:11:33+08:00
+- Updated at (ISO 8601, Asia/Manila): 2026-10-22T10:13:35+08:00
 - Agent / module: D — Driver/Operator Mobile
 - Repository: `valryde-mobile-driver-operator`
-- Branch / HEAD SHA: `feat/40-41-driver-route-map-foundation` from clean `main` @ `f0f57bbcac27c23b3f4a133b7b2b5f448cbe3327`
-- GitHub issues / PRs: Mobile PRs #1–#5 merged; PRs #3–#5 contain Claude's reviewed D1–D5 work. Agent A API PR #12 (G1) and PR #15 (fixtures) are open, clean and CI-green, not merged.
+- Branch / HEAD SHA: `feat/40-41-driver-route-map-foundation` @ `de74517ad62b7f85a3b0c177e6352de5e64939f5` from `main` @ `f0f57bbcac27c23b3f4a133b7b2b5f448cbe3327`
+- GitHub issues / PRs: Mobile PR #6 open/clean for D6/D7; GitGuardian passed. PRs #1–#5 merged; #3–#5 contain Claude's reviewed D1–D5 work. Agent A API PR #12 (G1) and PR #15 (fixtures) are open, clean and CI-green, not merged.
 - Checklist IDs: 38–55
 - Implementation progress: D6/D7 READY_FOR_REVIEW; Codex takeover continuing toward D8–D11
 - Tech Lead review decision (if actually issued): Mobile PRs #3, #4 and #5 accepted and merged at `f0f57bb`; D6–D11 takeover authorized.
 - Current objective: Submit D6/D7 Driver authorized-vehicle route/direction detail, static MapLibre geometry and Android build foundation for review without weakening G3/Agent B gates.
 - Last confirmed result: `npm run check` passed (158/158 tests; production build 922.37 kB initial, warning only); Capacitor Android sync and JDK 21 `assembleDebug` passed.
-- Next concrete action: Commit/push the focused D6/D7 branch and open a review PR. Then reassess Agent A PR #12 merge/dev availability before starting D8.
+- Next concrete action: Tech Lead reviews mobile PR #6. Reassess Agent A PR #12 merge/dev availability before starting D8; do not self-merge.
 - Blocked by / decision owner: Agent A G1 remains unmerged; G2 (membership), G3 (Driver self-assignment marker), G4 (unassign), G7 (route change requests) absent; Agent B tracking absent; PR #15 fixture data unmerged; physical device verification remains owner-gated.
 - Dependencies / affected agents: Agent A for auth/RBAC/fleet/route/application APIs; Agent B for tracking/latest-state/compliance/realtime; Agent E for Admin-owned route and GPS operations; Agent F for device runbooks; Tech Lead for shared-contract approval and synchronized governance correction.
 
@@ -45,6 +45,7 @@
 | `npx cap sync android` | Capacitor 8.5.3 | PASSED | 2026-10-22 10:11 +08:00 | Web assets copied; secure-storage 8.0.1 and App 8.0.1 plugins detected. |
 | `android\\gradlew.bat assembleDebug` | JDK 21.0.6; Android SDK 36/build-tools 35.0.0 | PASSED | 2026-10-22 10:11 +08:00 | 5,087,188-byte debug APK; SHA-256 `F6583007145EF506EFAFD349AA56540D69338B177A7D3A6A4FE77C46353F7866`. Standard generated `flatDir` warning only. |
 | `adb devices -l` | ADB 35.0.1 | NOT_RUN_ON_DEVICE | 2026-10-22 10:07 +08:00 | No connected Android device/emulator. APK install, WebView/WebGL, API reachability and secure storage remain owner/device gates. |
+| Mobile PR #6 submission | GitHub | PASSED | 2026-10-22 10:13 +08:00 | Open, non-draft and clean at `de74517`; GitGuardian passed. No merge performed. |
 | Codex takeover Git/worktree audit | Canonical mobile workspace | PASSED | 2026-10-22 09:53 +08:00 | Clean `main`/`origin/main` at `f0f57bb`; expected remote; no secondary mobile worktree or uncommitted Claude changes. |
 | Mobile PR #3/#4/#5 verification | GitHub | PASSED | 2026-10-22 09:53 +08:00 | All merged with GitGuardian success; commits explicitly credit Claude Opus 5.5 as co-author. |
 | Agent A PR #12/#15 verification | GitHub/API worktrees (read-only) | PASSED (gated) | 2026-10-22 09:53 +08:00 | Both open, clean and CI-green; neither contract/fixture set is available on `origin/main`. G2/G3/G4 remain absent. |
@@ -108,8 +109,8 @@
 - Observed result (success/failure/rollback): The screen lists only server-scoped vehicles, requires a choice when ambiguous, shows route code/name/direction/endpoints and DIRECT/GROUP source, and renders only valid ACTIVE official geometry/color. Distinct empty, inactive, conflict, invalid and network states are covered. A test exposed a nested load-epoch bug that left the loading state active after automatic selection; fixed. Full MapLibre CSS briefly pushed the initial bundle to 993.87 kB; removed because no MapLibre controls/popups are used, restoring 922.37 kB without changing budgets.
 - Validation and evidence: `npm run check` passed (158/158); runtime audit clean; Capacitor sync passed; JDK 21 Android debug build passed with final APK hash recorded above; `git diff --check` passed. See `docs/testing/DRIVER_ROUTE_MAP.md`.
 - Contracts / risks / dependencies: No backend contract/schema/realtime change. G3 remains explicit, so the UI says authorized/access-visible rather than active assignment. No phone GPS, tracking, groupmates, compliance or realtime. No basemap provider/style was invented. Physical WebView/WebGL/API/secure-storage verification remains unrun because no device/emulator is attached.
-- Commit/PR link or SHA (if available): Pending commit/PR on `feat/40-41-driver-route-map-foundation`.
-- Next action / owner gate: Commit/push/open the D6/D7 review PR; then proceed to D8 only after rechecking Agent A PR #12 and fixture PR #15 state.
+- Commit/PR link or SHA (if available): `de74517ad62b7f85a3b0c177e6352de5e64939f5`; https://github.com/erwin-io/valryde-mobile-driver-operator/pull/6 (open/clean; GitGuardian passed).
+- Next action / owner gate: Tech Lead reviews PR #6. Proceed to D8 only after rechecking Agent A PR #12 and fixture PR #15 state; do not self-merge.
 
 ### 2026-10-22 09:53 +08:00 — Codex temporary takeover recovered (`AGENT_D_CODEX_TAKEOVER_READY`)
 - Action / reason: Tech Lead authorized Codex to continue Claude's active D6–D11 Driver/Fleet Expansion without restarting completed work.
