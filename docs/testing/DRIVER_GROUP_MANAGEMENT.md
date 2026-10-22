@@ -1,7 +1,9 @@
 # Driver Directory, Assignment and Group Management Verification
 
-**Checkpoint:** D8–D10 review preparation  
-**Date:** 2026-10-22  
+**Checkpoint:** D8–D10 review preparation
+
+**Date:** 2026-10-22
+
 **Branch:** `feat/49-50-driver-group-management`
 
 ## Contract state
@@ -39,4 +41,3 @@ The first test run had two assertion-only failures: one expected a plate-specifi
 - G2 is still required for authoritative group membership reads and removals.
 - G3 and G4 are still required for Driver self-assignment identification and explicit unassignment.
 - Agent B remains required for online/offline, location and compliance totals.
-
