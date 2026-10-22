@@ -4,7 +4,8 @@
 - Updated at: 2026-10-23 (Asia/Singapore, +08:00).
 - Agent / module: D — Driver/Operator Mobile; Codex takeover directive 002.
 - Repository: erwin-io/valryde-mobile-driver-operator.
-- Branch / base: feat/codex-d-g2-g4-ui-takeover; origin/main 9f0765dc31cd013ace3d27ae14d3f65b10621784.
+- Branch / base: feat/codex-d-g2-g4-ui-takeover; origin/main 9f0765dc31cd013ace3d27ae14d3f65b10621784. Verified implementation commit: a46c245b28ee16c607a25075fb4648e03bd335ff; subsequent commit updates documentation only.
+- GitHub PR: [#9](https://github.com/erwin-io/valryde-mobile-driver-operator/pull/9), OPEN / MERGEABLE / CLEAN; GitGuardian SUCCESS at source a46c245; no merge or deployment.
 - Workspace: canonical checkout preserved; isolated .worktrees/codex-ui-takeover.
 - Implementation progress: READY_FOR_REVIEW source candidates for 38/39/40/46/49/50; native/live acceptance pending. Additional progress on 41/45/47/48 and tracking-ready 42–45/51/53/54. No new whole checklist completion asserted.
 - Tech Lead review: new work not reviewed; Agent G retains merge authority.
@@ -146,6 +147,11 @@
 - State: OWNER_VERIFICATION_PENDING; not required for documentation recovery.
 
 ## Activity log (newest first; preserve prior entries)
+### 2026-10-23 — PR9 opened, source head and security checks confirmed
+- Committed/pushed implementation a46c245b28ee16c607a25075fb4648e03bd335ff and opened [PR9](https://github.com/erwin-io/valryde-mobile-driver-operator/pull/9) against main; attached to chat. GitHub confirms OPEN, MERGEABLE, CLEAN and GitGuardian SUCCESS on that source head.
+- Recovery recheck: original checkout clean, isolated worktree clean after source commit, no stashes or local unpublished commits. All historical branches/worktree source preserved. This follow-up changes status/acceptance documentation only; application verification remains tied to unchanged source a46c245.
+- Next: Agent G review/acceptance/merge; owner/device/SMTP/App Links, isolated live API and Agent B public tracking gates remain. No new whole checklist ID marked Completed.
+
 ### 2026-10-23 — Final native artifact verified; review submission prepared
 - Final strict app/spec TypeScript both exit 0. Capacitor sync and asset-resynced Gradle lintDebug/testDebugUnitTest/assembleDebug PASSED (232 tasks, 172 executed/60 up-to-date; 1m20s).
 - APK: 5,100,567 bytes; SHA-256 9778DDEB692A6A7D72A02BD5E4EBAE2F2265D9430E9C026EE4E8DD95A0742E27. ZIP inspection: 73 JavaScript assets including Capacitor bridge files, zero development fixture markers. Production browser asset scan separately 71/zero. Generated dependency paths normalized; no Android tracked diff remains.
