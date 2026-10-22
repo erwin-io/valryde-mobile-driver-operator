@@ -1,11 +1,11 @@
 # Agent D — Contract Inventory for the Independent UI Batch
 
-**Date:** 2026-10-22 · **Source:** `valryde-api` `origin/main` @ `827738c`, read with `git show` only (no checkout or edits). Sources used:
+**Date:** 2026-10-22 · **Sources:** merged `valryde-api` contracts plus approved G1 contract PR #8 and implementation PR #12 @ `92ad341` (read-only review; no checkout or edits). Sources used:
 - `src/routes/*`, `src/services/*`, `src/plugins/authorization.ts` and `src/repositories/pg-identity-repository.ts`
 - `docs/integration/AGENT_A_OPENAPI_AUDIT.json` (audited at `711f4c4`)
 - `AGENT_A_FRONTEND_API_INTEGRATION_HANDOFF.md`
 
-Since `711f4c4` the only contract change is the auth `429 RATE_LIMITED` declaration and framework 4xx mapping. The fleet, workflow and transit routes are unchanged.
+The G1 implementation is open, mergeable and CI-green, but not merged. Agent D may prepare reviewable UI and deterministic HTTP/component tests against its exact DTO; this document does not claim a live development-API pass until PR #12 merges. Existing merged fleet, workflow and transit routes remain unchanged.
 
 A route existing is not permission. The **Ownership** column is what the service layer enforces for the signed-in user. Every path is under `/api`.
 
@@ -38,7 +38,8 @@ A route existing is not permission. The **Ownership** column is what the service
 | List applications | `GET /vehicle-applications` | DRIVER, OPERATOR, ADMIN | submitter, own operator's jeepneys, or driver access | — → `{applications[]}` `{id, jeepneyId, status PENDING/APPROVED/REJECTED, applicantNotes, reviewNotes, reviewedAt…}` | Unpaginated, no detail GET | Yes |
 | Submit application | `POST /vehicle-applications` | DRIVER, OPERATOR | jeepney in scope, else `403` | `{jeepneyId, applicantNotes?: ≤2000}` → `201 {application}` | Sets the jeepney to `PENDING_APPROVAL` server-side; `409 CONFLICT` if an application is already open | Yes (creates a dev record) |
 | Review application | `PATCH /admin/vehicle-applications/{id}/review` | ADMIN | — | — | **Admin-only; not used by Agent D** | — |
-| Assign driver | `POST /jeepneys/{id}/driver-assignment` | OPERATOR, ADMIN | same operator | `{driverId}` | Needs a `driverId` the client cannot list (**G1**) | **Gated** |
+| Driver directory (G1) | `GET /drivers?q&status&page&pageSize` | OPERATOR, ADMIN | OPERATOR scope is derived from the session | — → `{drivers[], pagination}`; each row contains `driverId`, `userId`, `email`, `displayName`, Driver/User status, verification, `operatorId`, `activeJeepneyId`, `groupIds`, `createdAt` | Client never sends `operatorId`/`associated`; mutation IDs use `driverId`, never `userId` | Review-only until PR #12 merges |
+| Assign driver | `POST /jeepneys/{id}/driver-assignment` | OPERATOR, ADMIN | same operator | `{driverId}` → `{assignment}` | Replaces active assignment according to the server; conflicts/authorization remain server-authoritative | Review-only against G1 PR #12 |
 | Associate driver | `POST /driver-associations` | OPERATOR | — | `{email}` → `{association}` | `409 DRIVER_NOT_READY` / `DRIVER_ALREADY_ASSOCIATED` | **Gated** (see D3) |
 
 ## D3 — Fleet groups (checklist 50, partial)
@@ -48,8 +49,8 @@ A route existing is not permission. The **Ownership** column is what the service
 | List groups | `GET /fleet-groups` | DRIVER, OPERATOR, ADMIN | OPERATOR own · DRIVER member-of | — → `{groups[]}` `{id, operatorId, name, description, status ACTIVE/INACTIVE…}` | Unpaginated, no detail GET | Yes |
 | Create group | `POST /fleet-groups` | OPERATOR, ADMIN | owner from session | `{name: 1–120, description?: ≤1000}` → `201 {group}` | — | Yes (creates a dev record) |
 | Update group | `PATCH /fleet-groups/{id}` | OPERATOR, ADMIN | own only, else `403` | `{name?, description?: string or null, status?: ACTIVE/INACTIVE}` (≥1) → `{group}` | Operators may deactivate their own groups | Yes |
-| Add jeepney to group | `POST /fleet-groups/{id}/jeepneys` | OPERATOR, ADMIN | group and jeepney both own | `{jeepneyId}` → `{message}` | `409 ROUTE_ASSIGNMENT_CONFLICT`. **No membership read or remove (G2)**, so the UI can't show or undo it | **Gated** |
-| Add driver to group | `POST /fleet-groups/{id}/drivers` | OPERATOR, ADMIN | same operator | `{driverId}` | `driverId` is not listable (**G1**); no membership read (**G2**) | **Gated** |
+| Add jeepney to group | `POST /fleet-groups/{id}/jeepneys` | OPERATOR, ADMIN | group and jeepney both own | `{jeepneyId}` → `{message}` | `409 ROUTE_ASSIGNMENT_CONFLICT`. **No membership read or remove (G2)**, so the UI cannot confirm or undo it | UI + deterministic tests built; live verification pending fixtures |
+| Add driver to group | `POST /fleet-groups/{id}/drivers` | OPERATOR, ADMIN | same operator | `{driverId}` → `{message}` | G1 `groupIds` can show known Driver membership; complete member reads/removal remain **G2** | UI + deterministic tests built; live verification pending G1/fixtures |
 
 ## D4 — GPS setup and transit (checklists 55, 52, partial)
 
@@ -66,7 +67,7 @@ A route existing is not permission. The **Ownership** column is what the service
 
 | Surface | Source | Limitation |
 |---|---|---|
-| Operator dashboard counts | Client counts over `GET /jeepneys` (by status), `GET /fleet-groups`, `GET /vehicle-applications`, `GET /gps-setup-requests` | Driver count needs **G1**. Online/offline/moving/deviating are **Agent B** |
+| Operator dashboard counts | Client counts over `GET /jeepneys` (by status), `GET /fleet-groups`, plus G1 pagination total from `GET /drivers?page=1&pageSize=1` | Driver count is review-only until G1 merges. Independent failures preserve available counts. Online/offline/moving/deviating are **Agent B** |
 | Driver "My Jeepney" | `GET /jeepneys` + `GET /jeepneys/{id}/effective-route` | No active-assignment marker (**G3**), so the list is shown as "jeepneys you can access", never as "your assigned jeepney" |
 | Tracker, location, compliance, groupmates | — | **Agent B** contracts (and G2 for groupmates) |
 
@@ -81,7 +82,7 @@ A route existing is not permission. The **Ownership** column is what the service
 
 ## Gaps that keep controls absent or disabled
 
-- **G1:** no drivers list.
+- **G1:** contract approved and implementation PR #12 is open/CI-green, not merged; live integration evidence is still gated.
 - **G2:** no group membership read or remove.
 - **G3:** no active-assignment marker for Drivers.
 - **G4:** no driver unassign.

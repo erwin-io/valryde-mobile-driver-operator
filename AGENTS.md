@@ -64,9 +64,9 @@ Do not implement or describe as approved MVP scope:
 
 ## 6. Development workflow
 
-The Tech Lead authorized the Agent D development directive on 2026-10-21. The frontend foundation and D1–D5 independent UI batch are merged. On 2026-10-22 the Tech Lead authorized the D6–D11 Driver/Fleet Expansion under a temporary Codex takeover. Continue the focused feature branches and contract gates recorded in the handoff and status file; do not restart merged work or treat an open Agent A PR as a production contract. Toolchain: Node `24.15.0` (`.nvmrc`), Angular 22, Ionic 9, Capacitor 8; run `npm run check`.
+The frontend foundation and D1–D7 are merged. The Tech Lead authorized the D6–D11 Driver/Fleet Expansion under a temporary Codex takeover on 2026-10-22. D8–D10 is in PR #7 on `feat/49-50-driver-group-management`, using Agent A's approved G1 DTO while implementation PR #12 remains unmerged. D11 must wait for fixture PR #15 to merge. G2/G3/G4 and Agent B tracking remain explicit gates. Toolchain: Node `24.15.0` (`.nvmrc`), Angular 22, Ionic 9, Capacitor 8; run `npm run check`.
 
-After Tech Lead review releases the implementation checkpoint:
+For an authorized feature slice:
 
 1. Confirm the checklist IDs, stable backend contracts, acceptance criteria, and dependencies.
 2. Inspect current source and preserve established conventions.

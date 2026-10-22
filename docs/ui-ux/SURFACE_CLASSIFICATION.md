@@ -59,22 +59,22 @@
 
 | ID | Surface | Class | Gate | Foundation | Note |
 |---|---|---|---|---|---|
-| O01 | Operator Dashboard | PAGE | A+B | Built (counts) | Jeepney, approval and group counts from scoped lists; drivers (G1) and tracking (Agent B) show "—". |
-| O02 | Fleet Hub | PAGE | — | Built | Jeepneys and groups with counts; Drivers (G1) and live map (Agent B) disabled. |
+| O01 | Operator Dashboard | PAGE | A+B | Built (G1 review-only) | Jeepney, approval and group counts remain independent; Driver total uses G1 pagination. Tracking (Agent B) stays "—". |
+| O02 | Fleet Hub | PAGE | — | Built (G1 review-only) | Jeepneys/groups retain independent counts; Driver directory link and total use G1. Live map remains Agent B-gated. |
 | O03 | My Jeepneys | PAGE | — | Built | Client-side plate search (no server search contract). |
 | O04 | Add Jeepney | PAGE | — | Built | Plate, body color and description only; one form component shared with O06. |
-| O05 | Jeepney Detail | PAGE | A | Built | Selected from the scoped list (no detail GET); application state, effective route; driver assignment disabled (G1). |
+| O05 | Jeepney Detail | PAGE | A | Built (G1 review-only) | Selected from the scoped list (no detail GET); application, effective route, current G1 assignment and confirmed assignment action. |
 | O06 | Edit Jeepney | COMP | — | Built | Edit mode of the O04 form: color and description only; never status or plate. |
 | O07 | Vehicle Application | PAGE | — | Built (in O05) | Submit with notes when the server state allows; review notes shown. |
-| O08 | Drivers | PAGE | A | | List/association contract incomplete. |
+| O08 | Drivers | PAGE | A | Built (G1 review-only) | Operator-scoped search/pagination and eligibility. Association-by-email remains outside this slice. |
 | O09 | Associate Driver | PAGE | A | | No association flow until Agent A confirms the workflow. |
 | O10 | Driver Detail | PAGE | A | | |
-| O11 | Assign Driver to Jeepney | SHEET | — | | |
+| O11 | Assign Driver to Jeepney | COMP | A | Built (G1 review-only) | Inline confirmation in O05; warns that the server replaces an active Driver/jeepney assignment. |
 | O12 | Fleet Groups | PAGE | — | Built | |
 | O13 | Create Group | PAGE | — | Built | Shares one form component with O15. |
-| O14 | Group Detail | PAGE | A | Built (info) | Members gated on G1/G2. |
+| O14 | Group Detail | PAGE | A | Built (partial) | G1 `groupIds` show known Driver members; Driver/jeepney additions built. Complete reads/removal remain G2-gated. |
 | O15 | Edit Group | COMP | — | Built | Name, description, Active/Inactive. |
-| O16 | Manage Group Members | SHEET | — | | |
+| O16 | Manage Group Members | COMP | A | Built (partial) | Addition controls live in O14; complete membership listing and removal remain G2-gated. |
 | O17 | Fleet Live Map | PAGE | B | | |
 | O18 | Transits | PAGE | A | Built (catalogue) | Official ACTIVE routes with server search/pagination; operational summary gated (Agent B). |
 | O19 | Transit Detail | PAGE | — | Built | Read-only official directions; assign action per direction. |

@@ -71,6 +71,7 @@ export const routes: Routes = [
       { path: 'fleet/jeepneys/new', loadComponent: () => import('./operator/jeepney-form.page').then((module) => module.JeepneyFormPage) },
       { path: 'fleet/jeepneys/:id', loadComponent: () => import('./operator/jeepney-detail.page').then((module) => module.JeepneyDetailPage) },
       { path: 'fleet/jeepneys/:id/edit', loadComponent: () => import('./operator/jeepney-form.page').then((module) => module.JeepneyFormPage) },
+      { path: 'fleet/drivers', loadComponent: () => import('./operator/drivers.page').then((module) => module.DriversPage) },
       { path: 'fleet/groups', loadComponent: () => import('./operator/groups.page').then((module) => module.GroupsPage) },
       { path: 'fleet/groups/new', loadComponent: () => import('./operator/group-form.page').then((module) => module.GroupFormPage) },
       { path: 'fleet/groups/:id', loadComponent: () => import('./operator/group-detail.page').then((module) => module.GroupDetailPage) },

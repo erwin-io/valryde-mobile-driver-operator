@@ -5,7 +5,7 @@
 **Application:** Valryde Operator
 **Repository:** `valryde-mobile-driver-operator`
 **Canonical workspace:** `C:\Development\valryde\valryde-mobile-driver-operator`
-**State:** Frontend foundation and D1–D5 merged; D6–D11 Driver/Fleet Expansion authorized; temporary Codex takeover active
+**State:** Frontend foundation and D1–D7 merged; D8–D10 in PR #7; D11 backend-fixture gated; temporary Codex takeover active
 
 ## Mission
 
@@ -69,12 +69,14 @@ The backend snapshot inspected during bootstrap exposes auth, user profile, jeep
 6. Approved transit assignment/change request and vehicle/GPS application flows.
 7. Role-isolation, offline/reconnect, stale-state, and acceptance tests.
 
-## Frontend execution checkpoints
+## Active expansion checkpoint
 
-1. `UX_CONTRACT_READY` — screen inventory, role navigation/flows, design system/components, Agent A dependencies, Agent B gates and screen acceptance criteria. Reported; detailed acceptance pending.
-2. Application scaffold and shared shell (`FRONTEND_FOUNDATION_READY`) — released and merged.
-3. D1–D5 account, fleet, GPS and transit UI batch — merged in PRs #3–#5.
-4. D6–D11 Driver/Fleet Expansion — released 2026-10-22; current checkpoint.
+- D6/D7: merged through PR #6 at `1f9d6cc`. Static official route geometry and the Android debug foundation are preserved; no phone GPS or live tracking is claimed.
+- D8–D10: `feat/49-50-driver-group-management`. Operator-scoped G1 directory/search/counts, confirmed Driver assignment and member-addition UI are implemented with deterministic tests. Use `driverId`, never `userId`.
+- D11: do not run until Agent A fixture PR #15 merges. G1 live verification also waits for API PR #12 to merge/deploy.
+- Remaining: G2 membership read/removal, G3 Driver self-assignment marker, G4 unassign and all Agent B tracking/compliance contracts.
+
+D6/D7 is merged through PR #6. D8–D10 is the current review checkpoint in PR #7.
 
 ## Reporting
 
@@ -90,12 +92,13 @@ The initial bootstrap was mistakenly prepared under `C:\Development\valryde\valr
 ## Temporary Codex takeover / Claude resumption
 
 - Claude's D1–D5 work is preserved in merged PRs #3–#5 and credited in each commit. There were no uncommitted Claude changes or secondary mobile worktrees at takeover.
-- Codex continued from clean `main` `f0f57bb` on `feat/40-41-driver-route-map-foundation`; do not recreate the foundation or D1–D5.
+- Codex implemented D6/D7 in PR #6; it is merged into `main` at `1f9d6cc`. Do not recreate the foundation or D1–D7.
 - D6/D7 uses only Driver-scoped `GET /jeepneys`, `GET /jeepneys/{id}/effective-route`, and public `GET /transit-routes/{id}`. It labels the selected jeepney as authorized/access-visible because G3 is absent; it never asserts an active Driver assignment.
 - The static MapLibre view renders official route geometry/color and endpoint markers only. Phone GPS, live vehicle state, groupmates, compliance, and Agent B realtime remain absent.
 - Android was added with Capacitor 8.5.3 and built under JDK 21. Device/API verification remains an owner gate.
-- Agent A PR #12 (G1) and PR #15 (fixtures) were open, clean and CI-green at takeover but unmerged. D8 must not claim live G1 integration before merge/dev availability; G2/G3/G4 remain gated.
+- D8–D10 is implemented on `feat/49-50-driver-group-management` in PR #7. It uses `driverId`, preserves G2/G3/G4 gates, and must not claim live G1 integration before Agent A PR #12 merges/deploys.
+- Agent A PR #15 remains the gate for D11 fixture-based business integration.
 
 ## Next action
 
-Complete review of the D6/D7 focused branch and its web/Android evidence. After it is coherent, proceed to D8 on `feat/49-50-driver-group-management` only when the approved G1 contract is merged or explicitly as review-only preparation; preserve G2/G3/G4 gates.
+Review PR #7 after its normal merge of current `main`. Execute D11 only after PR #15 merges. Preserve all D6/D7 and D8–D10 tests, do not claim unmerged backend integration, and do not self-merge.

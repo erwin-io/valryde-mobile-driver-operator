@@ -20,7 +20,7 @@ import { firstValueFrom } from 'rxjs';
 
 import { apiErrorCode, apiErrorMessage } from '../core/api-error';
 import { FleetApiService } from '../core/fleet-api.service';
-import type { EffectiveRouteDirection, GpsSetupRequest, Jeepney, VehicleApplication } from '../core/fleet.models';
+import type { DriverDirectoryEntry, EffectiveRouteDirection, GpsSetupRequest, Jeepney, VehicleApplication } from '../core/fleet.models';
 import { statusLabel, statusTone } from '../shared/fleet-status';
 import { StatePanelComponent } from '../shared/state-panel.component';
 import { StatusPillComponent } from '../shared/status-pill.component';
@@ -173,17 +173,51 @@ type RouteState = { kind: 'loading' } | { kind: 'none' } | { kind: 'conflict' } 
 
           <section aria-labelledby="driver-heading">
             <h2 id="driver-heading" class="section-heading">Driver</h2>
-            <ion-list inset="true">
-              <ion-item [disabled]="true">
-                <ion-label class="ion-text-wrap"><h3>Assign a driver</h3><p>Unavailable until VALRYDE provides a list of your drivers.</p></ion-label>
-              </ion-item>
-            </ion-list>
+            @if (driversLoading()) {
+              <p role="status"><ion-spinner name="crescent" /> Loading Driver directory…</p>
+            } @else if (driversError()) {
+              <app-state-panel panelId="jeepney-drivers-error" icon="people-outline" title="Driver assignment unavailable" [message]="driversError()!" actionLabel="Try again" (action)="loadDrivers()" />
+            } @else {
+              @if (currentDriver(); as assigned) {
+                <ion-list inset="true"><ion-item><ion-label><p>Currently assigned</p><h3>{{ assigned.displayName }}</h3><p>{{ assigned.email }}</p></ion-label></ion-item></ion-list>
+              } @else {
+                <p class="supporting-text">No active Driver assignment is reported for this jeepney.</p>
+              }
+              @if (assignmentMessage()) { <ion-note color="success" role="status">{{ assignmentMessage() }}</ion-note> }
+              @if (assignmentError()) { <ion-note color="danger" role="alert">{{ assignmentError() }}</ion-note> }
+              @if (pendingDriver(); as driver) {
+                <div class="confirm-panel" role="group" aria-labelledby="assignment-confirm-heading">
+                  <h3 id="assignment-confirm-heading">Assign {{ driver.displayName }}?</h3>
+                  <p>This assigns {{ driver.displayName }} to {{ j.plateNo }} and replaces any active assignment held by this Driver or jeepney.</p>
+                  <div class="confirm-actions">
+                    <ion-button fill="clear" [disabled]="assigning()" (click)="pendingDriver.set(null)">Cancel</ion-button>
+                    <ion-button [disabled]="assigning()" (click)="assignDriver()">{{ assigning() ? 'Assigning…' : 'Confirm assignment' }}</ion-button>
+                  </div>
+                </div>
+              } @else if (eligibleDrivers().length === 0) {
+                <p class="supporting-text">No active, verified Driver is available to assign.</p>
+              } @else {
+                <ion-list inset="true">
+                  @for (driver of eligibleDrivers(); track driver.driverId) {
+                    <ion-item>
+                      <ion-label class="ion-text-wrap"><h3>{{ driver.displayName }}</h3><p>{{ driverAssignmentLabel(driver) }}</p></ion-label>
+                      <ion-button slot="end" fill="outline" [disabled]="driver.activeJeepneyId === jeepneyId" (click)="pendingDriver.set(driver)">{{ driver.activeJeepneyId === jeepneyId ? 'Assigned' : 'Assign' }}</ion-button>
+                    </ion-item>
+                  }
+                </ion-list>
+              }
+            }
           </section>
         }
       </main>
     </ion-content>
   `,
-  styles: `.swatch { border: 1px solid var(--vr-color-border); border-radius: 50%; height: 1.5rem; width: 1.5rem; }`,
+  styles: `
+    .swatch { border: 1px solid var(--vr-color-border); border-radius: 50%; height: 1.5rem; width: 1.5rem; }
+    .confirm-panel { background: var(--vr-color-surface); border: 1px solid var(--vr-color-border); border-radius: var(--vr-radius-md); margin-top: var(--vr-space-3); padding: var(--vr-space-4); }
+    .confirm-panel h3, .confirm-panel p { margin-top: 0; }
+    .confirm-actions { display: flex; justify-content: flex-end; }
+  `,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class JeepneyDetailPage {
@@ -200,6 +234,13 @@ export class JeepneyDetailPage {
   protected readonly gpsError = signal<string | null>(null);
   protected readonly applying = signal(false);
   protected readonly applyError = signal<string | null>(null);
+  protected readonly drivers = signal<DriverDirectoryEntry[]>([]);
+  protected readonly driversLoading = signal(true);
+  protected readonly driversError = signal<string | null>(null);
+  protected readonly pendingDriver = signal<DriverDirectoryEntry | null>(null);
+  protected readonly assigning = signal(false);
+  protected readonly assignmentError = signal<string | null>(null);
+  protected readonly assignmentMessage = signal<string | null>(null);
   protected readonly applyForm = new FormGroup({
     notes: new FormControl('', { nonNullable: true, validators: [Validators.maxLength(2000)] }),
   });
@@ -211,6 +252,10 @@ export class JeepneyDetailPage {
     const status = this.jeepney()?.status;
     return (status === 'DRAFT' || status === 'REJECTED') && this.application()?.status !== 'PENDING';
   });
+  protected readonly eligibleDrivers = computed(() =>
+    this.drivers().filter((driver) => driver.status === 'ACTIVE' && driver.userStatus === 'ACTIVE' && driver.emailVerified),
+  );
+  protected readonly currentDriver = computed(() => this.drivers().find(({ activeJeepneyId }) => activeJeepneyId === this.jeepneyId) ?? null);
 
   constructor() {
     void this.load();
@@ -235,11 +280,51 @@ export class JeepneyDetailPage {
       this.jeepney.set(jeepney);
       this.application.set(newest(applications.filter((a) => a.jeepneyId === this.jeepneyId)));
       this.gps.set(newest(gpsRequests.filter((r) => r.jeepneyId === this.jeepneyId)));
-      if (jeepney) void this.loadRoute();
+      if (jeepney) {
+        void this.loadRoute();
+        void this.loadDrivers();
+      }
     } catch (error: unknown) {
       this.loadError.set(apiErrorMessage(error, 'This jeepney could not be loaded.'));
     } finally {
       this.loading.set(false);
+    }
+  }
+
+  protected async loadDrivers(): Promise<void> {
+    this.driversLoading.set(true);
+    this.driversError.set(null);
+    try {
+      const result = await firstValueFrom(this.api.listDrivers({ status: 'ACTIVE', page: 1, pageSize: 100 }));
+      this.drivers.set(result.drivers);
+    } catch (error: unknown) {
+      this.drivers.set([]);
+      this.driversError.set(apiErrorMessage(error, 'The Driver directory could not be loaded.'));
+    } finally {
+      this.driversLoading.set(false);
+    }
+  }
+
+  protected driverAssignmentLabel(driver: DriverDirectoryEntry): string {
+    if (driver.activeJeepneyId === this.jeepneyId) return 'Assigned to this jeepney';
+    return driver.activeJeepneyId ? 'Currently assigned to another jeepney' : 'No active jeepney assignment';
+  }
+
+  protected async assignDriver(): Promise<void> {
+    const driver = this.pendingDriver();
+    if (!driver || this.assigning()) return;
+    this.assigning.set(true);
+    this.assignmentError.set(null);
+    this.assignmentMessage.set(null);
+    try {
+      await firstValueFrom(this.api.assignDriver(this.jeepneyId, driver.driverId));
+      this.pendingDriver.set(null);
+      this.assignmentMessage.set(`${driver.displayName} is now assigned to this jeepney.`);
+      await this.loadDrivers();
+    } catch (error: unknown) {
+      this.assignmentError.set(apiErrorMessage(error, 'The Driver could not be assigned.'));
+    } finally {
+      this.assigning.set(false);
     }
   }
 

@@ -28,10 +28,10 @@ import { StatePanelComponent } from '../shared/state-panel.component';
         <section aria-labelledby="fleet-overview-heading">
           <h2 id="fleet-overview-heading" class="section-heading">Fleet overview</h2>
           <div class="metric-grid">
-            <article><span>Jeepneys</span><strong>{{ counts()?.jeepneys ?? '—' }}</strong><small>{{ counts() ? counts()!.active + ' active' : 'Not loaded' }}</small></article>
+            <article><span>Jeepneys</span><strong>{{ counts()?.jeepneys ?? '—' }}</strong><small>{{ counts()?.active !== null && counts()?.active !== undefined ? counts()!.active + ' active' : 'Not loaded' }}</small></article>
             <article><span>Awaiting approval</span><strong>{{ counts()?.pending ?? '—' }}</strong><small>Reviewed by VALRYDE Admin</small></article>
-            <article><span>Fleet groups</span><strong>{{ counts()?.groups ?? '—' }}</strong><small>{{ counts() ? 'Your groups' : 'Not loaded' }}</small></article>
-            <article><span>Drivers</span><strong>—</strong><small>Driver list not yet available</small></article>
+            <article><span>Fleet groups</span><strong>{{ counts()?.groups ?? '—' }}</strong><small>{{ counts()?.groups !== null && counts()?.groups !== undefined ? 'Your groups' : 'Not loaded' }}</small></article>
+            <article><span>Drivers</span><strong>{{ counts()?.drivers ?? '—' }}</strong><small>{{ counts()?.drivers !== null && counts()?.drivers !== undefined ? 'Associated drivers' : 'Directory unavailable' }}</small></article>
             <article><span>Online</span><strong>—</strong><small>Tracking gated</small></article>
             <article><span>Off route</span><strong>—</strong><small>Tracking gated</small></article>
           </div>
@@ -79,11 +79,11 @@ export class OperatorDashboardPage implements OnInit {
   private readonly api = inject(FleetApiService);
   private entered = false;
   readonly foundationPreview = input(false);
-  protected readonly counts = signal<{ jeepneys: number; active: number; pending: number; groups: number } | null>(null);
+  protected readonly counts = signal<{ jeepneys: number | null; active: number | null; pending: number | null; groups: number | null; drivers: number | null } | null>(null);
   protected readonly managementItems = [
     { title: 'Jeepneys', subtitle: 'Vehicles, applications and routes', icon: 'bus-outline', link: '/operator/fleet/jeepneys' },
     { title: 'Fleet groups', subtitle: 'Organize jeepneys and drivers', icon: 'people-outline', link: '/operator/fleet/groups' },
-    { title: 'Drivers', subtitle: 'Available when VALRYDE can list your drivers', icon: 'people-outline', link: null },
+    { title: 'Drivers', subtitle: 'Directory and vehicle assignments', icon: 'people-outline', link: '/operator/fleet/drivers' },
   ] as const;
 
   ngOnInit(): void {
@@ -97,17 +97,23 @@ export class OperatorDashboardPage implements OnInit {
 
   /** Plain counts over the Operator-scoped lists; no tracking state is inferred. */
   protected async load(): Promise<void> {
-    try {
-      const [jeepneys, groups] = await Promise.all([firstValueFrom(this.api.listJeepneys()), firstValueFrom(this.api.listGroups())]);
-      this.counts.set({
-        jeepneys: jeepneys.length,
-        active: jeepneys.filter((j) => j.status === 'ACTIVE').length,
-        pending: jeepneys.filter((j) => j.status === 'PENDING_APPROVAL').length,
-        groups: groups.length,
-      });
-    } catch {
+    const [jeepneys, groups, drivers] = await Promise.allSettled([
+      firstValueFrom(this.api.listJeepneys()),
+      firstValueFrom(this.api.listGroups()),
+      firstValueFrom(this.api.listDrivers({ page: 1, pageSize: 1 })),
+    ]);
+    if (jeepneys.status === 'rejected' && groups.status === 'rejected' && drivers.status === 'rejected') {
       this.counts.set(null);
+      return;
     }
+    const scopedJeepneys = jeepneys.status === 'fulfilled' ? jeepneys.value : null;
+    this.counts.set({
+      jeepneys: scopedJeepneys?.length ?? null,
+      active: scopedJeepneys?.filter((j) => j.status === 'ACTIVE').length ?? null,
+      pending: scopedJeepneys?.filter((j) => j.status === 'PENDING_APPROVAL').length ?? null,
+      groups: groups.status === 'fulfilled' ? groups.value.length : null,
+      drivers: drivers.status === 'fulfilled' ? drivers.value.pagination.total : null,
+    });
   }
 
   constructor() {

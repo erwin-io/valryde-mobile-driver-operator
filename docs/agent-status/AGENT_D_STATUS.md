@@ -1,18 +1,18 @@
 # VALRYDE — Agent D Status
 
 ## Current snapshot
-- Updated at (ISO 8601, Asia/Manila): 2026-10-22T10:13:35+08:00
+- Updated at (ISO 8601, Asia/Manila): 2026-10-22T12:08:03+08:00
 - Agent / module: D — Driver/Operator Mobile
 - Repository: `valryde-mobile-driver-operator`
-- Branch / implementation SHA: `feat/40-41-driver-route-map-foundation`; D6/D7 implementation `de74517ad62b7f85a3b0c177e6352de5e64939f5` from `main` @ `f0f57bbcac27c23b3f4a133b7b2b5f448cbe3327` (followed only by status reporting commits)
-- GitHub issues / PRs: Mobile PR #6 open/clean for D6/D7; GitGuardian passed. PRs #1–#5 merged; #3–#5 contain Claude's reviewed D1–D5 work. Agent A API PR #12 (G1) and PR #15 (fixtures) are open, clean and CI-green, not merged.
+- Branch / implementation SHA: `feat/49-50-driver-group-management`; normal reconciliation merge `c48f5174c7702d0f50f5a833c7ea3d8560470066` with parents `54666ba` and `1f9d6cc`.
+- GitHub issues / PRs: PRs #1–#6 merged. D8–D10 PR #7 is open, mergeable and GitGuardian-clean after reconciliation. Agent A G1 PR #12 and fixture PR #15 remain open/green.
 - Checklist IDs: 38–55
-- Implementation progress: D6/D7 READY_FOR_REVIEW; Codex takeover continuing toward D8–D11
-- Tech Lead review decision (if actually issued): Mobile PRs #3, #4 and #5 accepted and merged at `f0f57bb`; D6–D11 takeover authorized.
-- Current objective: Submit D6/D7 Driver authorized-vehicle route/direction detail, static MapLibre geometry and Android build foundation for review without weakening G3/Agent B gates.
-- Last confirmed result: `npm run check` passed (158/158 tests; production build 922.37 kB initial, warning only); Capacitor Android sync and JDK 21 `assembleDebug` passed.
-- Next concrete action: Tech Lead reviews mobile PR #6. Reassess Agent A PR #12 merge/dev availability before starting D8; do not self-merge.
-- Blocked by / decision owner: Agent A G1 remains unmerged; G2 (membership), G3 (Driver self-assignment marker), G4 (unassign), G7 (route change requests) absent; Agent B tracking absent; PR #15 fixture data unmerged; physical device verification remains owner-gated.
+- Implementation progress: D6/D7 merged; D8–D10 implementation and deterministic tests complete; D11 BLOCKED_BY_FIXTURE_PR_15.
+- Tech Lead review decision (if actually issued): D6/D7 accepted through merged PR #6; PR #7 not accepted or merged.
+- Current objective: Await Agent G/Tech Lead review of reconciled PR #7; do not self-merge.
+- Last confirmed result: Lint and both TypeScript projects passed; 13 files / 170 tests passed; production build 922.46 kB warning only; runtime audit clean; full audit has five development-tooling findings; diff hygiene passed.
+- Next concrete action: Agent G/Tech Lead reviews PR #7. D11 remains gated on Agent A fixture PR #15.
+- Blocked by / decision owner: Agent A PR #12 merge/deploy for live G1; PR #15 merge for D11 fixtures; G2 membership read/removal; G3 assignment marker; G4 unassign; Agent B tracking; owner: physical device testing.
 - Dependencies / affected agents: Agent A for auth/RBAC/fleet/route/application APIs; Agent B for tracking/latest-state/compliance/realtime; Agent E for Admin-owned route and GPS operations; Agent F for device runbooks; Tech Lead for shared-contract approval and synchronized governance correction.
 
 ## Checklist coverage
@@ -20,17 +20,17 @@
 |---:|---|---|---|---|
 | 38 | Driver Signup / Login / Profile | IN_PROGRESS (D1 READY_FOR_REVIEW) | Sign-in/register, verify email, forgot/reset password, Account (server profile, sign-out with revocation), secure refresh-token vault, restore; real Agent A tests in `docs/testing/ACCOUNT_SESSION_INTEGRATION.md` | Profile edit/security (S11/S12), native device verification |
 | 39 | My Jeepney | IN_PROGRESS (static) | Driver home lists accessible jeepneys + server route summary | Active-assignment marker G3 |
-| 40 | Assigned Transit Route & Direction | IN_PROGRESS (D6 READY_FOR_REVIEW) | Authorized vehicle selection, server-resolved DIRECT/GROUP route identity/direction/endpoints and explicit no-route/conflict/inactive/error states; `docs/testing/DRIVER_ROUTE_MAP.md` | G3 still gates active Driver vehicle identification |
-| 41 | Driver Route Guidance Map | IN_PROGRESS (D7 STATIC READY_FOR_REVIEW) | Lazy MapLibre official LineString/color/endpoints, camera fit/recenter, geometry validation and cleanup; deterministic tests + Android build | Device/WebView smoke owner-gated; live GPS/tracking remains Agent B |
+| 40 | Assigned Transit Route & Direction | MERGED (D6) | Authorized vehicle selection, server-resolved DIRECT/GROUP route identity/direction/endpoints and explicit no-route/conflict/inactive/error states; `docs/testing/DRIVER_ROUTE_MAP.md` | G3 still gates active Driver vehicle identification |
+| 41 | Driver Route Guidance Map | MERGED (D7 STATIC) | Lazy MapLibre official LineString/color/endpoints, camera fit/recenter, geometry validation and cleanup; deterministic tests + Android build | Device/WebView smoke owner-gated; live GPS/tracking remains Agent B |
 | 42 | GPS Device-Based Own Location | NOT_STARTED | Planning documentation only | Approved latest-state client DTO required |
 | 43 | Route Compliance Status & Alert | NOT_STARTED | Planning documentation only | Approved backend compliance contract required |
 | 44 | Same-Group Jeepneys Live Map | NOT_STARTED | Planning documentation only | Scoped REST/realtime contracts required |
 | 45 | Groupmate Status & Details | NOT_STARTED | Planning documentation only | Scoped groupmate contract required |
 | 46 | Operator Signup / Login / Profile | IN_PROGRESS (D1 READY_FOR_REVIEW) | Same shared account/session slice, verified against the real API as OPERATOR | Profile edit/security (S11/S12), native device verification |
-| 47 | Operator Dashboard | IN_PROGRESS (counts) | Jeepney/approval/group counts from scoped lists | Driver count G1; tracking tiles Agent B |
+| 47 | Operator Dashboard | READY_FOR_REVIEW (D10 partial) | Existing counts preserved; G1 pagination total supplies Driver count with independent failure handling | Live G1 pass awaits PR #12; tracking tiles Agent B |
 | 48 | My Jeepneys, Applications & Details | IN_PROGRESS (D2 READY_FOR_REVIEW) | Jeepney list/create/edit/detail, application submit/status, effective route; `docs/testing/OPERATOR_FLEET_INTEGRATION.md` | GPS section (D4); driver assignment gated on G1 |
-| 49 | Driver Management & Assignment | NOT_STARTED | Planning documentation only | Existing fleet routes identified; DTO verification pending |
-| 50 | Fleet Group Management | IN_PROGRESS (D3 READY_FOR_REVIEW) | Group list/create/edit/status | Membership gated on G1/G2 |
+| 49 | Driver Management & Assignment | READY_FOR_REVIEW (D8) | Scoped directory/search/pagination, eligibility, current assignment, explicit confirmation, `driverId` mutation tests | Live G1 pass awaits Agent A PR #12 merge/deploy; G4 unassign absent |
+| 50 | Fleet Group Management | READY_FOR_REVIEW (D9 partial) | Existing group CRUD plus Driver/jeepney additions; known Driver memberships from G1 `groupIds` | Complete membership reads/removal remain G2 |
 | 51 | Group Live Tracking | NOT_STARTED | Planning documentation only | Scoped REST/realtime contracts required |
 | 52 | Transit Assignment, Details & Route Change Request | IN_PROGRESS (D4 READY_FOR_REVIEW) | Official route catalogue/detail, direction assignment to own jeepney/group | Real success needs an Admin-published route; route change requests gated (G7) |
 | 53 | Route Compliance Overview | NOT_STARTED | Planning documentation only | Compliance API/DTO required |
@@ -40,6 +40,20 @@
 ## Latest verification
 | Command / check | Environment | Result | Date/time | Evidence / notes |
 |---|---|---|---|---|
+| PR #7 push / GitHub state | GitHub | PASSED | 2026-10-22 12:09 +08:00 | Normal two-parent merge pushed without force; PR open, mergeable and GitGuardian passed. `1f9d6cc` is an ancestor of the branch. |
+| PR #7 post-merge `npm run lint` | Node 24.19.0 | PASSED | 2026-10-22 11:53 +08:00 | ESLint exit 0 after D6/D7 + D8–D10 reconciliation. |
+| `tsc -p tsconfig.app.json --noEmit`; `tsc -p tsconfig.spec.json --noEmit` | TypeScript 6.0.3 | PASSED | 2026-10-22 11:52 +08:00 | Both strict app and test projects passed. |
+| PR #7 post-merge `npm run test` | Angular/Vitest | PASSED | 2026-10-22 11:55 +08:00 | 13 files, 170 tests; route-map and Driver/fleet suites coexist. |
+| PR #7 post-merge `npm run build` | Angular production | PASSED (warning) | 2026-10-22 11:55 +08:00 | Initial 922.46 kB; unchanged 700 kB warning / 1 MB error budget. MapLibre remains lazy at 1.05 MB. |
+| `npm audit --package-lock-only --omit=dev` | npm 10.9.1 registry audit | PASSED | 2026-10-22 12:07 +08:00 | Zero runtime vulnerabilities. |
+| `npm audit --package-lock-only` | npm 10.9.1 registry audit | FAILED (development tooling) | 2026-10-22 12:07 +08:00 | 5 findings: 1 low, 3 moderate, 1 high in transitive Vite/Capacitor CLI tooling. Suggested fixes require `--force` breaking changes; not applied. |
+| Merge conflict/diff audit | Git | PASSED | 2026-10-22 12:08 +08:00 | No unmerged paths, conflict markers or staged/working-tree whitespace errors. Both `/driver/map` and `/operator/fleet/drivers` routes present. |
+| PR #7 creation/state | GitHub | PASSED | 2026-10-22 10:35 +08:00 | Open, mergeable; GitGuardian passed at initial inspection. Not merged. |
+| Agent A gate recheck (`gh pr view 12`, `gh pr view 15`) | GitHub | BLOCKED (expected) | 2026-10-22 10:32 +08:00 | Both PRs open, mergeable and API CI/GitGuardian green. G1 client prep is review-only; D11 not run. |
+| D8–D10 `npm run lint` | Node project toolchain | PASSED | 2026-10-22 10:31 +08:00 | ESLint exit 0, zero warnings. |
+| D8–D10 `npm run test` | Angular/Vitest | PASSED | 2026-10-22 10:37 +08:00 | 11 files, 158 tests, including eligible selection and 403/409 assignment rejections. First run had two assertion-only mismatches; corrected and rerun green. |
+| D8–D10 `npm run build` | Angular production build | PASSED (warning) | 2026-10-22 10:32 +08:00 | Initial bundle 920.96 kB; existing 700 kB warning, below 1 MB error budget. |
+| D8–D10 `git diff --check main...HEAD` | Canonical workspace | PASSED | 2026-10-22 10:36 +08:00 | Final PR-range check found two Markdown hard-break spaces and one extra EOF line in the new test note; normalized in `cfd7d21`, then exit 0. |
 | `npm run check` | Node 24.19.0 | PASSED (warning) | 2026-10-22 10:11 +08:00 | Lint clean; 13 files / 158 tests; production build passed. Initial 922.37 kB exceeds unchanged 700 kB warning but remains below unchanged 1 MB error; MapLibre is lazy (1.05 MB). |
 | `npm audit --omit=dev` | npm 10.9.1 | PASSED | 2026-10-22 10:04 +08:00 | Zero runtime vulnerabilities. Full tree reports 5 development/tooling findings; no force upgrade applied. |
 | `npx cap sync android` | Capacitor 8.5.3 | PASSED | 2026-10-22 10:11 +08:00 | Web assets copied; secure-storage 8.0.1 and App 8.0.1 plugins detected. |
@@ -102,6 +116,26 @@
 - State: OWNER_VERIFICATION_PENDING; not required for documentation recovery.
 
 ## Activity log (newest first; preserve prior entries)
+### 2026-10-22 12:08 +08:00 — PR #7 reconciled with merged D6/D7 (`AGENT_D_PR7_POST_MERGE_RECONCILED`)
+- Action / reason: Agent G directed a normal merge of PR #6's merged `main` (`1f9d6cc`) into existing PR #7 without force-pushing.
+- Checklist/issue: 40–41 and 47/49/50 coexistence; PR #7 integration.
+- Files/config/services affected: Normal Git merge brought the D6/D7 route-map, MapLibre dependencies, Android platform and documentation into the D8–D10 branch. Conflicts were limited to AGENTS, CLAUDE, README, handoff and the persistent status file; both histories were retained. Application route/spec changes merged automatically.
+- Observed result (success/failure/rollback): `/driver/map` and `/operator/fleet/drivers` coexist. Authorized route-map navigation, Driver directory/search, confirmed assignment, Driver/jeepney group additions and resilient dashboard counts remain present. No force push, backend edit, contract expansion or self-merge.
+- Validation and evidence: Lint and both TypeScript projects passed; 13 files / 170 tests passed; production build passed at 922.46 kB with the existing warning; runtime audit found zero vulnerabilities; full audit reports five development-only tooling findings; diff/conflict checks passed.
+- Contracts / risks / dependencies: G1 live verification still awaits Agent A PR #12 merge/deploy. G2/G3/G4 and Agent B gates remain. D11 awaits fixture PR #15. Full audit fixes require breaking forced changes and were not applied.
+- Commit/PR link or SHA (if available): Normal merge `c48f5174c7702d0f50f5a833c7ea3d8560470066`; https://github.com/erwin-io/valryde-mobile-driver-operator/pull/7 (open, mergeable, GitGuardian passed; not merged).
+- Next action / owner gate: Agent G/Tech Lead reviews PR #7. D11 waits for Agent A fixture PR #15; do not self-merge.
+
+### 2026-10-22 10:33 +08:00 — Codex D8–D10 implementation complete; PR preparation active
+- Action / reason: Continued the Tech Lead-approved temporary takeover from the actual D6–D11 state. Preserved Claude's merged D1–D5 work and credited it; did not restart completed slices.
+- Checklist/issue: 49 (D8), 50 (D9 partial), 47 (D10 partial).
+- Files/config/services affected: G1 DTO and typed client calls; Driver directory page/route; vehicle assignment confirmation; group Driver/jeepney additions; Fleet hub/dashboard Driver counts; component/HTTP tests; contract/classification/testing docs; governance/resumption docs. Agent A was inspected read-only and not modified.
+- Observed result (success/failure/rollback): Operator-scoped directory/search/pagination, eligibility, current assignment and reassignment warning are reviewable. Mutations use `driverId`, never `userId`. Group additions are enabled without fabricating complete membership; G2 limits are explicit. Existing dashboard counts survive an unavailable G1 request. First test run had two assertion-only failures and was corrected without weakening production behavior.
+- Validation and evidence: lint passed; 158/158 tests passed, including explicit unauthorized/conflict assignment failures and ineligible selection; production build passed at 920.96 kB with the existing warning; diff hygiene passed. Details: `docs/testing/DRIVER_GROUP_MANAGEMENT.md`.
+- Contracts / risks / dependencies: Agent A G1 PR #12 is open/mergeable/green but unmerged, so no live G1 pass is claimed. Fixture PR #15 is open/mergeable/green but unmerged, so D11 was not started. G2/G3/G4 and Agent B gates remain.
+- Commit/PR link or SHA (if available): `db3ea3b`; https://github.com/erwin-io/valryde-mobile-driver-operator/pull/7 (open, mergeable; not merged).
+- Next action / owner gate: Tech Lead review of PR #7; Agent A/Tech Lead merges/deploys #12 for live G1 and merges #15 before D11.
+
 ### 2026-10-22 10:11 +08:00 — D6/D7 Driver route and static MapLibre foundation ready for review
 - Action / reason: Continued the approved D6–D11 expansion from Claude's merged D1–D5 baseline, implementing checklist 40–41 without claiming the missing G3 assignment or Agent B tracking contracts.
 - Checklist/issue: 40 and 41 (D6/D7).

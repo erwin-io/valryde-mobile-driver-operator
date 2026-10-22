@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import {
   IonBackButton,
@@ -9,6 +9,7 @@ import {
   IonItem,
   IonLabel,
   IonList,
+  IonNote,
   IonSpinner,
   IonTitle,
   IonToolbar,
@@ -17,7 +18,7 @@ import { firstValueFrom } from 'rxjs';
 
 import { apiErrorMessage } from '../core/api-error';
 import { FleetApiService } from '../core/fleet-api.service';
-import type { FleetGroup } from '../core/fleet.models';
+import type { DriverDirectoryEntry, FleetGroup, Jeepney } from '../core/fleet.models';
 import { statusLabel, statusTone } from '../shared/fleet-status';
 import { StatePanelComponent } from '../shared/state-panel.component';
 import { StatusPillComponent } from '../shared/status-pill.component';
@@ -35,6 +36,7 @@ import { StatusPillComponent } from '../shared/status-pill.component';
     IonItem,
     IonLabel,
     IonList,
+    IonNote,
     IonSpinner,
     IonTitle,
     IonToolbar,
@@ -72,12 +74,50 @@ import { StatusPillComponent } from '../shared/status-pill.component';
           </ion-list>
           <section aria-labelledby="members-heading">
             <h2 id="members-heading" class="section-heading">Members</h2>
-            <app-state-panel
-              panelId="group-members-gated"
-              icon="lock-closed-outline"
-              title="Members not available yet"
-              message="VALRYDE can't yet list or remove group members, or list your drivers, so drivers and jeepneys can't be managed here."
-            />
+            <p class="supporting-text">G1 reports Driver group IDs, so known Driver memberships can be shown and added. G2 is still required for a complete member list and all removals.</p>
+            @if (membersLoading()) {
+              <p role="status"><ion-spinner name="crescent" /> Loading available members…</p>
+            } @else if (membersError()) {
+              <app-state-panel panelId="group-members-error" icon="lock-closed-outline" title="Member controls unavailable" [message]="membersError()!" actionLabel="Try again" (action)="loadMemberOptions()" />
+            } @else {
+              @if (memberMessage()) { <ion-note color="success" role="status">{{ memberMessage() }}</ion-note> }
+              @if (memberActionError()) { <ion-note color="danger" role="alert">{{ memberActionError() }}</ion-note> }
+              <h3>Drivers</h3>
+              @if (knownDriverMembers().length) {
+                <ion-list inset="true">
+                  @for (driver of knownDriverMembers(); track driver.driverId) {
+                    <ion-item><ion-label><h3>{{ driver.displayName }}</h3><p>Known member · removal unavailable</p></ion-label></ion-item>
+                  }
+                </ion-list>
+              }
+              @if (availableDrivers().length) {
+                <ion-list inset="true">
+                  @for (driver of availableDrivers(); track driver.driverId) {
+                    <ion-item>
+                      <ion-label><h3>{{ driver.displayName }}</h3><p>{{ driver.email }}</p></ion-label>
+                      <ion-button slot="end" fill="outline" [disabled]="addingId() !== null" (click)="addDriver(driver)">{{ addingId() === driver.driverId ? 'Adding…' : 'Add' }}</ion-button>
+                    </ion-item>
+                  }
+                </ion-list>
+              } @else if (!knownDriverMembers().length) {
+                <p class="supporting-text">No active, verified Driver is available to add.</p>
+              }
+
+              <h3>Jeepneys</h3>
+              <p class="supporting-text">G2 does not expose current jeepney membership. Adding is available, but the app cannot list or remove jeepneys afterward yet.</p>
+              @if (jeepneys().length) {
+                <ion-list inset="true">
+                  @for (jeepney of jeepneys(); track jeepney.id) {
+                    <ion-item>
+                      <ion-label><h3>{{ jeepney.plateNo }}</h3><p>{{ label(jeepney.status) }}</p></ion-label>
+                      <ion-button slot="end" fill="outline" [disabled]="addingId() !== null" (click)="addJeepney(jeepney)">{{ addingId() === jeepney.id ? 'Adding…' : 'Add' }}</ion-button>
+                    </ion-item>
+                  }
+                </ion-list>
+              } @else {
+                <p class="supporting-text">No jeepney is available in this Operator scope.</p>
+              }
+            }
           </section>
         }
       </main>
@@ -92,8 +132,25 @@ export class GroupDetailPage {
   protected readonly loading = signal(true);
   protected readonly error = signal<string | null>(null);
   protected readonly group = signal<FleetGroup | null>(null);
+  protected readonly drivers = signal<DriverDirectoryEntry[]>([]);
+  protected readonly jeepneys = signal<Jeepney[]>([]);
+  protected readonly membersLoading = signal(false);
+  protected readonly membersError = signal<string | null>(null);
+  protected readonly memberMessage = signal<string | null>(null);
+  protected readonly memberActionError = signal<string | null>(null);
+  protected readonly addingId = signal<string | null>(null);
   protected readonly label = statusLabel;
   protected readonly tone = statusTone;
+  protected readonly knownDriverMembers = computed(() => this.drivers().filter(({ groupIds }) => groupIds.includes(this.groupId)));
+  protected readonly availableDrivers = computed(() =>
+    this.drivers().filter(
+      (driver) =>
+        !driver.groupIds.includes(this.groupId) &&
+        driver.status === 'ACTIVE' &&
+        driver.userStatus === 'ACTIVE' &&
+        driver.emailVerified,
+    ),
+  );
 
   constructor() {
     void this.load();
@@ -108,11 +165,61 @@ export class GroupDetailPage {
     this.loading.set(true);
     this.error.set(null);
     try {
-      this.group.set((await firstValueFrom(this.api.listGroups())).find((g) => g.id === this.groupId) ?? null);
+      const group = (await firstValueFrom(this.api.listGroups())).find((g) => g.id === this.groupId) ?? null;
+      this.group.set(group);
+      if (group) void this.loadMemberOptions();
     } catch (error: unknown) {
       this.error.set(apiErrorMessage(error, 'This group could not be loaded.'));
     } finally {
       this.loading.set(false);
+    }
+  }
+
+  protected async loadMemberOptions(): Promise<void> {
+    this.membersLoading.set(true);
+    this.membersError.set(null);
+    try {
+      const [drivers, jeepneys] = await Promise.all([
+        firstValueFrom(this.api.listDrivers({ status: 'ACTIVE', page: 1, pageSize: 100 })),
+        firstValueFrom(this.api.listJeepneys()),
+      ]);
+      this.drivers.set(drivers.drivers);
+      this.jeepneys.set(jeepneys);
+    } catch (error: unknown) {
+      this.membersError.set(apiErrorMessage(error, 'Group member controls could not be loaded.'));
+    } finally {
+      this.membersLoading.set(false);
+    }
+  }
+
+  protected async addDriver(driver: DriverDirectoryEntry): Promise<void> {
+    if (this.addingId()) return;
+    this.addingId.set(driver.driverId);
+    this.memberActionError.set(null);
+    this.memberMessage.set(null);
+    try {
+      await firstValueFrom(this.api.addDriverToGroup(this.groupId, driver.driverId));
+      this.memberMessage.set(`${driver.displayName} was added. Known Driver memberships were refreshed.`);
+      await this.loadMemberOptions();
+    } catch (error: unknown) {
+      this.memberActionError.set(apiErrorMessage(error, 'The Driver could not be added to this group.'));
+    } finally {
+      this.addingId.set(null);
+    }
+  }
+
+  protected async addJeepney(jeepney: Jeepney): Promise<void> {
+    if (this.addingId()) return;
+    this.addingId.set(jeepney.id);
+    this.memberActionError.set(null);
+    this.memberMessage.set(null);
+    try {
+      await firstValueFrom(this.api.addJeepneyToGroup(this.groupId, jeepney.id));
+      this.memberMessage.set(`${jeepney.plateNo} was submitted for addition. Membership listing and removal remain unavailable until G2.`);
+    } catch (error: unknown) {
+      this.memberActionError.set(apiErrorMessage(error, 'The jeepney could not be added to this group.'));
+    } finally {
+      this.addingId.set(null);
     }
   }
 }

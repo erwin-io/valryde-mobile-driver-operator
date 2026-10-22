@@ -44,7 +44,7 @@ None are deleted: shared dev records need owner-approved cleanup.
 
 | Control | Reason |
 |---|---|
-| Driver assignment | **G1**: no drivers list to choose a `driverId` |
+| Driver assignment | G1 directory/assignment client work is prepared in D8 against approved PR #12; live verification still waits for that API implementation to merge and deploy. |
 | Group members, adding drivers or jeepneys | **G1**/**G2**: no membership read or remove, so it can't be shown or undone |
 | Drivers directory | **G1** |
 | Live fleet map; online, moving and off-route counts | **Agent B** |

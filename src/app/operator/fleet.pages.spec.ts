@@ -6,7 +6,8 @@ import { of, throwError } from 'rxjs';
 
 import { DriverHomePage } from '../driver/driver-home.page';
 import { FleetApiService } from '../core/fleet-api.service';
-import type { FleetGroup, GpsSetupRequest, Jeepney, TransitRoute, VehicleApplication } from '../core/fleet.models';
+import type { DriverDirectoryEntry, FleetGroup, GpsSetupRequest, Jeepney, TransitRoute, VehicleApplication } from '../core/fleet.models';
+import { DriversPage } from './drivers.page';
 import { GroupDetailPage } from './group-detail.page';
 import { GroupFormPage } from './group-form.page';
 import { GroupsPage } from './groups.page';
@@ -51,6 +52,20 @@ const group = (over: Partial<FleetGroup> = {}): FleetGroup => ({
   status: 'ACTIVE',
   createdAt: '2026-10-22T00:00:00Z',
   updatedAt: '2026-10-22T00:00:00Z',
+  ...over,
+});
+const driver = (over: Partial<DriverDirectoryEntry> = {}): DriverDirectoryEntry => ({
+  driverId: 'd-1',
+  userId: 'u-driver-1',
+  email: 'juan@example.test',
+  displayName: 'Juan Dela Cruz',
+  status: 'ACTIVE',
+  userStatus: 'ACTIVE',
+  emailVerified: true,
+  operatorId: 'op-1',
+  activeJeepneyId: null,
+  groupIds: [],
+  createdAt: '2026-10-22T00:00:00Z',
   ...over,
 });
 const gpsRequest = (over: Partial<GpsSetupRequest> = {}): GpsSetupRequest => ({
@@ -102,7 +117,11 @@ describe('Operator fleet pages', () => {
     | 'submitGpsRequest'
     | 'listRoutes'
     | 'getRoute'
-    | 'assignRoute',
+    | 'assignRoute'
+    | 'listDrivers'
+    | 'assignDriver'
+    | 'addDriverToGroup'
+    | 'addJeepneyToGroup',
     Mock
   >;
 
@@ -120,9 +139,11 @@ describe('Operator fleet pages', () => {
     for (const [key, value] of Object.entries(inputs)) fixture.componentRef.setInput(key, value);
     fixture.detectChanges();
     const settle = async () => {
-      await new Promise((resolve) => setTimeout(resolve));
-      await fixture.whenStable();
-      fixture.detectChanges();
+      for (let pass = 0; pass < 2; pass += 1) {
+        await new Promise((resolve) => setTimeout(resolve));
+        await fixture.whenStable();
+        fixture.detectChanges();
+      }
     };
     await settle();
     const instance = fixture.componentInstance as unknown as {
@@ -152,7 +173,46 @@ describe('Operator fleet pages', () => {
       listRoutes: vi.fn(() => of({ routes: [transitRoute], pagination: { page: 1, pageSize: 20, total: 1, totalPages: 1 } })),
       getRoute: vi.fn(() => of(transitRoute)),
       assignRoute: vi.fn(() => of({})),
+      listDrivers: vi.fn(() =>
+        of({ drivers: [driver()], pagination: { page: 1, pageSize: 20, total: 1, totalPages: 1 } }),
+      ),
+      assignDriver: vi.fn(() => of({ id: 'da-1', driverId: 'd-1', jeepneyId: 'j-1', active: true })),
+      addDriverToGroup: vi.fn(() => of('Driver added')),
+      addJeepneyToGroup: vi.fn(() => of('Jeepney added')),
     };
+  });
+
+  describe('DriversPage (O08)', () => {
+    it('lists the Operator-scoped directory with server totals and assignment state', async () => {
+      api.listDrivers.mockReturnValue(
+        of({
+          drivers: [driver({ activeJeepneyId: 'j-1', groupIds: ['g-1'] })],
+          pagination: { page: 1, pageSize: 20, total: 3, totalPages: 1 },
+        }),
+      );
+      const { text } = await render(DriversPage);
+      expect(api.listDrivers).toHaveBeenCalledWith({ q: undefined, page: 1, pageSize: 20 });
+      expect(text()).toContain('Juan Dela Cruz');
+      expect(text()).toContain('Assigned to ABC 123');
+      expect(text()).toContain('1 group');
+      expect(text()).toContain('3 drivers in this scope');
+    });
+
+    it('passes trimmed search to the server and handles an empty result', async () => {
+      const { fixture, settle, text } = await render(DriversPage);
+      api.listDrivers.mockReturnValue(of({ drivers: [], pagination: { page: 1, pageSize: 20, total: 0, totalPages: 0 } }));
+      (fixture.componentInstance as unknown as { search(value: string): void }).search('  maria  ');
+      await settle();
+      expect(api.listDrivers).toHaveBeenLastCalledWith({ q: 'maria', page: 1, pageSize: 20 });
+      expect(text()).toContain('No Driver matches your search.');
+    });
+
+    it('shows the server rejection without exposing an unscoped fallback', async () => {
+      api.listDrivers.mockReturnValue(rejected(403, 'FORBIDDEN', 'Active operator profile required'));
+      const { text } = await render(DriversPage);
+      expect(text()).toContain('Active operator profile required');
+      expect(text()).toContain('Try again');
+    });
   });
 
   describe('JeepneysPage (O03)', () => {
@@ -301,9 +361,64 @@ describe('Operator fleet pages', () => {
       expect(text()).toContain('Cubao → Quiapo');
     });
 
-    it('keeps driver assignment unavailable (no drivers list contract)', async () => {
+    it('shows the current assignment reported by G1', async () => {
+      api.listDrivers.mockReturnValue(
+        of({ drivers: [driver({ activeJeepneyId: 'j-1' })], pagination: { page: 1, pageSize: 100, total: 1, totalPages: 1 } }),
+      );
       const { text } = await render(JeepneyDetailPage, { id: 'j-1' });
-      expect(text()).toContain('Unavailable until VALRYDE provides a list of your drivers.');
+      expect(text()).toContain('Currently assigned');
+      expect(text()).toContain('Juan Dela Cruz');
+      expect(text()).toContain('Assigned');
+    });
+
+    it('requires confirmation and assigns with the Driver business ID', async () => {
+      const { fixture, settle, text } = await render(JeepneyDetailPage, { id: 'j-1' });
+      const page = fixture.componentInstance as unknown as {
+        pendingDriver: { set(value: DriverDirectoryEntry | null): void };
+        assignDriver(): Promise<void>;
+      };
+      page.pendingDriver.set(driver());
+      fixture.detectChanges();
+      expect(text()).toContain('replaces any active assignment held by this Driver or jeepney');
+      await page.assignDriver();
+      await settle();
+      expect(api.assignDriver).toHaveBeenCalledWith('j-1', 'd-1');
+      expect(api.listDrivers).toHaveBeenLastCalledWith({ status: 'ACTIVE', page: 1, pageSize: 100 });
+      expect(text()).toContain('Juan Dela Cruz is now assigned to this jeepney.');
+    });
+
+    it.each([
+      [403, 'FORBIDDEN', 'Driver is outside this Operator scope'],
+      [409, 'CONFLICT', 'Driver or jeepney already has a conflicting assignment'],
+    ])('shows a %s assignment rejection without reporting success', async (status, code, message) => {
+      api.assignDriver.mockReturnValue(rejected(status, code, message));
+      const { fixture, settle, text } = await render(JeepneyDetailPage, { id: 'j-1' });
+      const page = fixture.componentInstance as unknown as {
+        pendingDriver: { set(value: DriverDirectoryEntry | null): void };
+        assignDriver(): Promise<void>;
+      };
+      page.pendingDriver.set(driver());
+      await page.assignDriver();
+      await settle();
+      expect(api.assignDriver).toHaveBeenCalledWith('j-1', 'd-1');
+      expect(text()).toContain(message);
+      expect(text()).not.toContain('is now assigned to this jeepney');
+    });
+
+    it('does not offer an ineligible Driver for assignment', async () => {
+      api.listDrivers.mockReturnValue(
+        of({ drivers: [driver({ status: 'DISABLED' })], pagination: { page: 1, pageSize: 100, total: 1, totalPages: 1 } }),
+      );
+      const { text } = await render(JeepneyDetailPage, { id: 'j-1' });
+      expect(text()).toContain('No active, verified Driver is available to assign.');
+      expect(text()).not.toContain('Juan Dela CruzNo active jeepney assignmentAssign');
+    });
+
+    it('keeps the rest of the vehicle detail available when G1 rejects the directory', async () => {
+      api.listDrivers.mockReturnValue(rejected(503, 'SERVICE_UNAVAILABLE', 'Driver directory is temporarily unavailable'));
+      const { text } = await render(JeepneyDetailPage, { id: 'j-1' });
+      expect(text()).toContain('ABC 123');
+      expect(text()).toContain('VALRYDE is unavailable right now. Check your connection and try again.');
     });
   });
 
@@ -336,9 +451,30 @@ describe('Operator fleet pages', () => {
       expect((await render(GroupDetailPage, { id: 'other-group' })).text()).toContain('Group not available');
     });
 
-    it('keeps membership management absent (no membership contract)', async () => {
+    it('shows known Driver membership while clearly retaining G2 read/removal gates', async () => {
+      api.listDrivers.mockReturnValue(
+        of({ drivers: [driver({ groupIds: ['g-1'] })], pagination: { page: 1, pageSize: 100, total: 1, totalPages: 1 } }),
+      );
       const { text } = await render(GroupDetailPage, { id: 'g-1' });
-      expect(text()).toContain('Members not available yet');
+      expect(text()).toContain('Juan Dela Cruz');
+      expect(text()).toContain('Known member · removal unavailable');
+      expect(text()).toContain('G2 does not expose current jeepney membership');
+    });
+
+    it('adds a Driver and jeepney with their business IDs', async () => {
+      const { fixture, settle, text } = await render(GroupDetailPage, { id: 'g-1' });
+      const page = fixture.componentInstance as unknown as {
+        addDriver(value: DriverDirectoryEntry): Promise<void>;
+        addJeepney(value: Jeepney): Promise<void>;
+      };
+      await page.addDriver(driver());
+      await settle();
+      expect(api.addDriverToGroup).toHaveBeenCalledWith('g-1', 'd-1');
+      expect(text()).toContain('Known Driver memberships were refreshed.');
+      await page.addJeepney(jeepney());
+      await settle();
+      expect(api.addJeepneyToGroup).toHaveBeenCalledWith('g-1', 'j-1');
+      expect(text()).toContain('Membership listing and removal remain unavailable until G2.');
     });
   });
 
@@ -349,6 +485,7 @@ describe('Operator fleet pages', () => {
       expect(text()).toMatch(/Jeepneys\s*3\s*1 active/);
       expect(text()).toMatch(/Awaiting approval\s*1/);
       expect(text()).toMatch(/Fleet groups\s*1/);
+      expect(text()).toMatch(/Drivers\s*1/);
       expect(text()).toContain('appear once GPS tracking is connected');
     });
 

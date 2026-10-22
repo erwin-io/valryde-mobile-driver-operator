@@ -13,7 +13,7 @@ Do not initialize a replacement repository, clone over this workspace, or commit
 
 ## Current state
 
-The Tech Lead authorized Agent D development on 2026-10-21. The frontend foundation and D1–D5 account/fleet/GPS/transit slices are merged. D6–D11 Driver/Fleet Expansion is active; the current focused branch adds the Driver authorized-vehicle route/direction detail, static official MapLibre geometry, and the Android Capacitor platform while preserving G3 and tracking gates.
+The frontend foundation and D1–D7 are merged, including the Driver authorized-vehicle route/direction detail, static official MapLibre geometry and Android Capacitor platform. D8–D10 Driver directory, assignment, partial group membership and Driver counts are in PR #7 against Agent A's approved G1 contract; live integration remains gated until API PR #12 merges. D11 remains gated until fixture PR #15 merges.
 
 ## Ownership
 
@@ -60,6 +60,7 @@ Versions are pinned exactly in `package.json` and locked by `package-lock.json`.
 - `docs/ui-ux/SURFACE_CLASSIFICATION.md`
 - `docs/architecture/BUNDLE_BUDGET.md`
 - `docs/testing/ACCOUNT_SESSION_INTEGRATION.md`
+- `docs/testing/DRIVER_GROUP_MANAGEMENT.md`
 - `docs/evidence/frontend-foundation/` (screenshot evidence)
 
 ## Directive deliverable mapping
