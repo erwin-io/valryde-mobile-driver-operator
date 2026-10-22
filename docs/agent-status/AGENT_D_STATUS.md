@@ -1,16 +1,16 @@
 # VALRYDE — Agent D Status
 
 ## Current snapshot
-- Updated at (ISO 8601, Asia/Manila): 2026-10-22T10:33:30+08:00
+- Updated at (ISO 8601, Asia/Manila): 2026-10-22T10:37:05+08:00
 - Agent / module: D — Driver/Operator Mobile
 - Repository: `valryde-mobile-driver-operator`
-- Branch / implementation SHA: `feat/49-50-driver-group-management` implementation `db3ea3b`; recorded pre-status HEAD `cfd7d21`; base `main` @ `f0f57bb`.
+- Branch / implementation SHA: `feat/49-50-driver-group-management` implementation `db3ea3b`; recorded pre-status HEAD `f0f1706`; base `main` @ `f0f57bb`.
 - GitHub issues / PRs: PRs #1–#5 merged. D6/D7 is open in PR #6. D8–D10 is open and mergeable in PR #7. Agent A G1 PR #12 and fixture PR #15 remain open/green.
 - Checklist IDs: 38–55
 - Implementation progress: D6/D7 READY_FOR_REVIEW in PR #6; D8–D10 implementation and deterministic tests complete, PR preparation active; D11 BLOCKED_BY_FIXTURE_PR_15.
 - Tech Lead review decision (if actually issued): D6–D11 expansion authorized; no review acceptance or merge issued for PR #6 or this branch.
 - Current objective: D8 checklist 49, D9 checklist 50 and D10 checklist 47 using the exact approved G1 DTO while API PR #12 remains unmerged.
-- Last confirmed result: lint clean; 155/155 unit/component tests; production build 920.96 kB (existing warning only); `git diff --check` passed.
+- Last confirmed result: lint clean; 158/158 unit/component tests; production build 920.96 kB (existing warning only); `git diff --check` passed.
 - Next concrete action: Tech Lead reviews PRs #6 and #7; after Agent A PR #15 merges, create/use `test/48-52-55-business-integration` and run D11 against isolated approved fixtures.
 - Blocked by / decision owner: Agent A PR #12 merge/deploy for live G1; PR #15 merge for D11 fixtures; G2 membership read/removal; G3 assignment marker; G4 unassign; Agent B tracking; owner: physical device testing.
 - Dependencies / affected agents: Agent A for auth/RBAC/fleet/route/application APIs; Agent B for tracking/latest-state/compliance/realtime; Agent E for Admin-owned route and GPS operations; Agent F for device runbooks; Tech Lead for shared-contract approval and synchronized governance correction.
@@ -43,7 +43,7 @@
 | PR #7 creation/state | GitHub | PASSED | 2026-10-22 10:35 +08:00 | Open, mergeable; GitGuardian passed at initial inspection. Not merged. |
 | Agent A gate recheck (`gh pr view 12`, `gh pr view 15`) | GitHub | BLOCKED (expected) | 2026-10-22 10:32 +08:00 | Both PRs open, mergeable and API CI/GitGuardian green. G1 client prep is review-only; D11 not run. |
 | D8–D10 `npm run lint` | Node project toolchain | PASSED | 2026-10-22 10:31 +08:00 | ESLint exit 0, zero warnings. |
-| D8–D10 `npm run test` | Angular/Vitest | PASSED | 2026-10-22 10:32 +08:00 | 11 files, 155 tests. First run had two assertion-only mismatches; corrected and rerun green. |
+| D8–D10 `npm run test` | Angular/Vitest | PASSED | 2026-10-22 10:37 +08:00 | 11 files, 158 tests, including eligible selection and 403/409 assignment rejections. First run had two assertion-only mismatches; corrected and rerun green. |
 | D8–D10 `npm run build` | Angular production build | PASSED (warning) | 2026-10-22 10:32 +08:00 | Initial bundle 920.96 kB; existing 700 kB warning, below 1 MB error budget. |
 | D8–D10 `git diff --check main...HEAD` | Canonical workspace | PASSED | 2026-10-22 10:36 +08:00 | Final PR-range check found two Markdown hard-break spaces and one extra EOF line in the new test note; normalized in `cfd7d21`, then exit 0. |
 | `git status --short --branch` | Canonical workspace before recovery | PASSED | 2026-10-21 02:48 +08:00 | Clean `main...origin/main` before edits. |
@@ -103,7 +103,7 @@
 - Checklist/issue: 49 (D8), 50 (D9 partial), 47 (D10 partial).
 - Files/config/services affected: G1 DTO and typed client calls; Driver directory page/route; vehicle assignment confirmation; group Driver/jeepney additions; Fleet hub/dashboard Driver counts; component/HTTP tests; contract/classification/testing docs; governance/resumption docs. Agent A was inspected read-only and not modified.
 - Observed result (success/failure/rollback): Operator-scoped directory/search/pagination, eligibility, current assignment and reassignment warning are reviewable. Mutations use `driverId`, never `userId`. Group additions are enabled without fabricating complete membership; G2 limits are explicit. Existing dashboard counts survive an unavailable G1 request. First test run had two assertion-only failures and was corrected without weakening production behavior.
-- Validation and evidence: lint passed; 155/155 tests passed; production build passed at 920.96 kB with the existing warning; diff hygiene passed. Details: `docs/testing/DRIVER_GROUP_MANAGEMENT.md`.
+- Validation and evidence: lint passed; 158/158 tests passed, including explicit unauthorized/conflict assignment failures and ineligible selection; production build passed at 920.96 kB with the existing warning; diff hygiene passed. Details: `docs/testing/DRIVER_GROUP_MANAGEMENT.md`.
 - Contracts / risks / dependencies: Agent A G1 PR #12 is open/mergeable/green but unmerged, so no live G1 pass is claimed. Fixture PR #15 is open/mergeable/green but unmerged, so D11 was not started. G2/G3/G4 and Agent B gates remain.
 - Commit/PR link or SHA (if available): `db3ea3b`; https://github.com/erwin-io/valryde-mobile-driver-operator/pull/7 (open, mergeable; not merged).
 - Next action / owner gate: Tech Lead review of PR #7; Agent A/Tech Lead merges/deploys #12 for live G1 and merges #15 before D11.

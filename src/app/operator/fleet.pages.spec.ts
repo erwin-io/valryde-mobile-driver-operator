@@ -387,6 +387,33 @@ describe('Operator fleet pages', () => {
       expect(text()).toContain('Juan Dela Cruz is now assigned to this jeepney.');
     });
 
+    it.each([
+      [403, 'FORBIDDEN', 'Driver is outside this Operator scope'],
+      [409, 'CONFLICT', 'Driver or jeepney already has a conflicting assignment'],
+    ])('shows a %s assignment rejection without reporting success', async (status, code, message) => {
+      api.assignDriver.mockReturnValue(rejected(status, code, message));
+      const { fixture, settle, text } = await render(JeepneyDetailPage, { id: 'j-1' });
+      const page = fixture.componentInstance as unknown as {
+        pendingDriver: { set(value: DriverDirectoryEntry | null): void };
+        assignDriver(): Promise<void>;
+      };
+      page.pendingDriver.set(driver());
+      await page.assignDriver();
+      await settle();
+      expect(api.assignDriver).toHaveBeenCalledWith('j-1', 'd-1');
+      expect(text()).toContain(message);
+      expect(text()).not.toContain('is now assigned to this jeepney');
+    });
+
+    it('does not offer an ineligible Driver for assignment', async () => {
+      api.listDrivers.mockReturnValue(
+        of({ drivers: [driver({ status: 'DISABLED' })], pagination: { page: 1, pageSize: 100, total: 1, totalPages: 1 } }),
+      );
+      const { text } = await render(JeepneyDetailPage, { id: 'j-1' });
+      expect(text()).toContain('No active, verified Driver is available to assign.');
+      expect(text()).not.toContain('Juan Dela CruzNo active jeepney assignmentAssign');
+    });
+
     it('keeps the rest of the vehicle detail available when G1 rejects the directory', async () => {
       api.listDrivers.mockReturnValue(rejected(503, 'SERVICE_UNAVAILABLE', 'Driver directory is temporarily unavailable'));
       const { text } = await render(JeepneyDetailPage, { id: 'j-1' });

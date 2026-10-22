@@ -18,7 +18,7 @@ Agent A fixture PR #15 is also open and CI-green but not merged. D11 isolated bu
 |---|---|
 | Operator Driver directory | Sends only `q`, `status`, `page`, and `pageSize`; server-scoped results, totals, search, assignment state, empty and denied states are rendered. |
 | Driver identity safety | Assignment and group mutations send `driverId`; tests assert that `userId` is never sent. |
-| Jeepney assignment | Shows G1 current assignment, filters to active/verified candidates, requires a second confirmation step, describes replacement semantics, reloads the directory after success, and preserves the rest of vehicle detail if G1 is unavailable. |
+| Jeepney assignment | Shows G1 current assignment, filters to active/verified candidates, requires a second confirmation step, describes replacement semantics, reloads after success, preserves vehicle detail if G1 is unavailable, and renders 403/409 rejections without false success. |
 | Group addition | Adds a Driver or jeepney using its business ID. Known Driver memberships may be shown from G1 `groupIds`. The UI explicitly says complete jeepney membership reads and all removal controls remain unavailable until G2. |
 | Dashboard and Fleet hub | Use G1 pagination total for Driver count. `Promise.allSettled` preserves jeepney/group counts when the Driver directory is unavailable. Tracking totals remain gated. |
 | Server authority | 401/403/409 and outage messages come from the shared API error path; the client does not infer permission, ownership, or mutation success. |
@@ -28,7 +28,7 @@ Agent A fixture PR #15 is also open and CI-green but not merged. D11 isolated bu
 | Command | Result |
 |---|---|
 | `npm run lint` | Passed, zero warnings. |
-| `npm run test` | Passed: 11 files, 155 tests. |
+| `npm run test` | Passed: 11 files, 158 tests. |
 | `npm run build` | Passed; initial bundle 920.96 kB. Existing 700 kB warning remains below the 1 MB error threshold. |
 | `git diff --check` | Passed. |
 
