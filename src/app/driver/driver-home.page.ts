@@ -127,7 +127,9 @@ export class DriverHomePage implements OnInit, OnDestroy {
       if (epoch !== this.loadEpoch) return;
       const jeepney = jeepneys.find(({ id }) => id === assignment.jeepneyId);
       if (!jeepney) throw new Error('Assigned jeepney is no longer visible');
-      const route = await this.routeSummary(jeepney.id);
+      const route = jeepney.status === 'ACTIVE'
+        ? await this.routeSummary(jeepney.id)
+        : 'Route guidance unavailable until this jeepney is active';
       if (epoch === this.loadEpoch) this.vehicles.set([{ jeepney, route }]);
     } catch {
       if (epoch === this.loadEpoch) this.loadFailed.set(true);
