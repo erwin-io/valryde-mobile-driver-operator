@@ -4,7 +4,7 @@ const angular = require('angular-eslint');
 
 module.exports = tseslint.config(
   {
-    ignores: ['android/.gradle/**', 'android/**/build/**', 'dist/**', 'node_modules/**', 'www/**'],
+    ignores: ['.angular/**', 'android/app/src/main/assets/**', 'android/capacitor-cordova-android-plugins/**', 'android/.gradle/**', 'android/**/build/**', 'dist/**', 'node_modules/**', 'www/**'],
   },
   {
     files: ['**/*.ts'],

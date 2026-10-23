@@ -1,45 +1,63 @@
 # VALRYDE — Agent D Status
 
 ## Current snapshot
-- Updated at (ISO 8601, Asia/Manila): 2026-10-22T16:17T:00+08:00
-- Agent / module: D — Driver/Operator Mobile
-- Repository: `valryde-mobile-driver-operator`
-- Branch / implementation SHA: `feat/agent-d-independent-ui-closure`; implementation commit `51c56a6ddbe0ee0d0b874b7549748b4247d53fd8`; based on merged `origin/main` at `c8d0580e69dabbd28799737e01c84ead93ad5884` (includes PR #7).
-- GitHub issues / PRs: Mobile PRs #1–#7 merged; corrective PR #8 open for review. Agent A G1 PR #12 and fixture PR #15 remain open/green.
-- Checklist IDs: 38–55
-- Implementation progress: All independently deliverable UI behavior and deterministic coverage for IDs 38–55 complete; D11 reads remain `BLOCKED_BY_AGENT_A_PR_15`; D11 business mutation probes are additionally fixture-blocked until Agent A approves a trustworthy runtime isolation attestation; live G1 remains gated on Agent A PR #12.
-- Tech Lead review decision (if actually issued): PR #8 changes required for integration-harness isolation; correction implemented without an invented backend endpoint. No approval to self-merge.
-- Current objective: Agent G/Tech Lead re-reviews corrected PR #8; do not self-merge.
-- Last confirmed result: Claude re-verified the Codex correction on the final source: lint, both strict TypeScript projects, 16 files / 205 Angular tests, 5 Node harness safety tests (adds a dispatch-path transport-spy test and a single-network-path source check), production build 922.47 kB warning only; D11 unconfigured and non-loopback runs refuse before any request; runtime audit clean; full audit unchanged (5 development-tooling findings); diff hygiene passed. Android not rerun: no app or native source changed since `1c7ac76` (Codex 16:04 Android pass stands).
-- Next concrete action: Agent G/Tech Lead reviews the fixture-blocked mutation correction in PR #8. Do not enable mutation probes until an approved Agent A runtime attestation can bind the API process to a disposable database.
-- Blocked by / decision owner: Agent A PR #12 merge/deploy for live G1; PR #15 merge for D11 fixtures; Agent A/Tech Lead for any future runtime fixture-identity contract; G2 membership read/removal; G3 assignment marker; G4 unassign; Agent B tracking; owner: physical device testing.
-- Dependencies / affected agents: Agent A for auth/RBAC/fleet/route/application APIs; Agent B for tracking/latest-state/compliance/realtime; Agent E for Admin-owned route and GPS operations; Agent F for device runbooks; Tech Lead for shared-contract approval and synchronized governance correction.
+- Updated at: 2026-10-23 15:55 (Asia/Singapore, +08:00).
+- Agent / module: D — Driver/Operator Mobile; active directive VALRYDE TECH LEAD — AGENT D RAPID DELIVERY 004.
+- Repository: erwin-io/valryde-mobile-driver-operator.
+- Branch / base: feat/codex-d-g2-g4-ui-takeover; origin/main 9f0765dc31cd013ace3d27ae14d3f65b10621784. Prior head 9767be8bb344efc1103447fda694af528f224e14; Rapid004 source/test/evidence update follows that preserved history.
+- GitHub PR: [#9](https://github.com/erwin-io/valryde-mobile-driver-operator/pull/9), OPEN / MERGEABLE / CLEAN at latest inspection; no merge or deployment.
+- Workspace: canonical checkout preserved; isolated .worktrees/codex-ui-takeover.
+- Implementation progress: READY_FOR_REVIEW source candidates for 38/39/40/46/49/50; native/live acceptance pending. Additional progress on 41/45/47/48 and tracking-ready 42–45/51/53/54. No new whole checklist completion asserted.
+- Tech Lead review: new work not reviewed; Agent G retains merge authority.
+- Recovery audit: clean tracked/untracked state; no stash, no unpushed commits; one original worktree. All prior feature heads preserved, latest implementation content identical to main (PR8 merged). Local main is 16 commits behind remote. Local-only docs/agent-d-workspace-recovery head ab49017 is reachable from remote history, not unpushed work.
+- Execution ownership: owner directive transfers Agent D to Codex; repeated clean Git snapshots show no concurrent writes. Claude desktop/CLI exists but CLI command line does not reference assigned repository; process presence cannot prove session inactivity. Isolated worktree prevents shared-source writes. No processes stopped.
+- Ignored filename-only audit: .angular/, .claude/launch.json, android build/assets/Gradle caches, dist/, node_modules/; no ignored credential contents read or disclosed.
+- Contract discovery: current API main includes G1/G2/G3/G4/G5/G6 source; prior local merge blockers are stale. Reviewed fleet route/domain/service directly on GitHub; no backend checkout edited. Tracking public DTO/realtime still absent in reviewed B report.
+- Verification: Latest `npm run check` PASSED: lint; 17 Angular/Vitest files, 261 tests; 5/5 unchanged guard tests; 4/4 read-runner safety tests; production 935.56 kB (existing 700 kB warning, below 1 MB error). Strict app/spec TypeScript passed. Earlier Capacitor sync and Android lintDebug/testDebugUnitTest/assembleDebug PASSED, 232 tasks; no new native build after this TypeScript-only correction. Earlier APK 5,100,567 bytes; SHA-256 5904CE291D8D49EFF46C2A351363F5217DCF838448755E62A32D35DE440BC709. Previous production fixture scans and browser guard smoke passed; no attached device.
+- Remaining gates: disposable runtime attestation for business integration; approved public tracking contracts; owner physical-device/SMTP/App Links hosting and deployment.
+- Current objective: Close the ID39/40 review slice in PR9; authenticated fixture reads and device acceptance remain external gates. Isolated write acceptance for IDs 48/49/50 remains a separate approval task.
+- Current integration prerequisites: shared API reachable on loopback:3000; six public API checks passed. CREDENTIALS_NOT_CONFIGURED: expected runner environment absent; no authenticated acceptance claimed. D-SEC-001 explicitly blocks writes pending runtime/database binding and approved isolation. Existing harness guard unchanged and not bypassed.
+- Next action: Tech Lead review of docs/testing/D004_MUTATION_ATTESTATION_PROPOSAL.md; secure approved credential provisioning for protected reads. No operator terminal management required for completed checks. No six-item acceptance claim.
 
 ## Checklist coverage
 | Checklist ID | Feature / slice | Progress | Evidence (files/tests/PR) | Blocker / next action |
 |---:|---|---|---|---|
 | 38 | Driver Signup / Login / Profile | INDEPENDENT_SCOPE_COMPLETE | Sign-in/register, verify/recovery/email/password flows, Account, revoked/disabled handling, role navigation, secure refresh-token vault/restore and race coverage; real Agent A evidence in `docs/testing/ACCOUNT_SESSION_INTEGRATION.md` | Native device/SMTP verification |
-| 39 | My Jeepney | IN_PROGRESS (static) | Driver home lists accessible jeepneys + server route summary | Active-assignment marker G3 |
-| 40 | Assigned Transit Route & Direction | MERGED (D6) | Authorized vehicle selection, server-resolved DIRECT/GROUP route identity/direction/endpoints and explicit no-route/conflict/inactive/error states; `docs/testing/DRIVER_ROUTE_MAP.md` | G3 still gates active Driver vehicle identification |
+| 39 | My Jeepney | READY_FOR_REVIEW | G3 /me/assignment selects the sole current jeepney; missing/revoked/stale cases covered | Live disposable API + device acceptance pending |
+| 40 | Assigned Transit Route & Direction | READY_FOR_REVIEW | G3 context plus server-resolved official direction, geometry, conflict/inactive/unavailable/access-revocation states | Physical-device and live route acceptance pending |
 | 41 | Driver Route Guidance Map | MERGED (D7 STATIC) | Lazy MapLibre official LineString/color/endpoints, camera fit/recenter, geometry validation and cleanup; deterministic tests + Android build | Device/WebView smoke owner-gated; live GPS/tracking remains Agent B |
-| 42 | GPS Device-Based Own Location | NOT_STARTED | Planning documentation only | Approved latest-state client DTO required |
-| 43 | Route Compliance Status & Alert | NOT_STARTED | Planning documentation only | Approved backend compliance contract required |
-| 44 | Same-Group Jeepneys Live Map | NOT_STARTED | Planning documentation only | Scoped REST/realtime contracts required |
-| 45 | Groupmate Status & Details | NOT_STARTED | Planning documentation only | Scoped groupmate contract required |
+| 42 | GPS Device-Based Own Location | IN_PROGRESS (presentation only) | Typed local presentation adapter, operational unknown states and development-only synthetic scenarios | Approved latest-state client DTO required |
+| 43 | Route Compliance Status & Alert | IN_PROGRESS (presentation only) | Typed local presentation adapter, operational unknown states and development-only synthetic scenarios | Approved backend compliance contract required |
+| 44 | Same-Group Jeepneys Live Map | IN_PROGRESS (presentation only) | Typed local presentation adapter, operational unknown states and development-only synthetic scenarios | Scoped REST/realtime contracts required |
+| 45 | Groupmate Status & Details | IN_PROGRESS | Read-only G2 Driver group/member/jeepney list with server pagination and denied-scope clearing; no Operator directory or writes | Live status/location Agent B contract required |
 | 46 | Operator Signup / Login / Profile | INDEPENDENT_SCOPE_COMPLETE | Same shared account/session slice and role-adaptive navigation, verified against the real API as OPERATOR | Native device/SMTP verification |
-| 47 | Operator Dashboard | READY_FOR_REVIEW (D10 partial) | Existing counts preserved; G1 pagination total supplies Driver count with independent failure handling | Live G1 pass awaits PR #12; tracking tiles Agent B |
+| 47 | Operator Dashboard | IN_PROGRESS | Scoped independent counts preserved; compliance/transit availability views reachable | Real aggregate DTO/runtime Agent B gate |
 | 48 | My Jeepneys, Applications & Details | IN_PROGRESS (D2 READY_FOR_REVIEW) | Jeepney list/create/edit/detail, application submit/status, effective route; `docs/testing/OPERATOR_FLEET_INTEGRATION.md` | GPS section (D4); driver assignment gated on G1 |
-| 49 | Driver Management & Assignment | READY_FOR_REVIEW (D8) | Scoped directory/search/pagination, eligibility, current assignment, explicit confirmation, `driverId` mutation tests | Live G1 pass awaits Agent A PR #12 merge/deploy; G4 unassign absent |
-| 50 | Fleet Group Management | READY_FOR_REVIEW (D9 partial) | Existing group CRUD plus Driver/jeepney additions; known Driver memberships from G1 `groupIds` | Complete membership reads/removal remain G2 |
-| 51 | Group Live Tracking | NOT_STARTED | Planning documentation only | Scoped REST/realtime contracts required |
+| 49 | Driver Management & Assignment | READY_FOR_REVIEW | G1 directory + confirmed assignment/reassignment and G4 atomic unassign; all directory pages including assigned disabled Drivers; negative/conflict/repeat-tap tests | Disposable live API and device acceptance pending |
+| 50 | Fleet Group Management | READY_FOR_REVIEW | Group CRUD/additions plus G2 authoritative paginated reads and confirmed Driver/jeepney removals; revoked scope cleared | Disposable live API and device acceptance pending |
+| 51 | Group Live Tracking | IN_PROGRESS (presentation only) | Typed local presentation adapter, operational unknown states and development-only synthetic scenarios | Scoped REST/realtime contracts required |
 | 52 | Transit Assignment, Details & Route Change Request | IN_PROGRESS (D4 READY_FOR_REVIEW) | Official route catalogue/detail, direction assignment to own jeepney/group | Real success needs an Admin-published route; route change requests gated (G7) |
-| 53 | Route Compliance Overview | NOT_STARTED | Planning documentation only | Compliance API/DTO required |
-| 54 | Transit Summary | NOT_STARTED | Planning documentation only | Summary API/DTO required |
+| 53 | Route Compliance Overview | IN_PROGRESS (presentation only) | Typed local presentation adapter, operational unknown states and development-only synthetic scenarios | Compliance API/DTO required |
+| 54 | Transit Summary | IN_PROGRESS (presentation only) | Typed local presentation adapter, operational unknown states and development-only synthetic scenarios | Summary API/DTO required |
 | 55 | GPS Device Setup Request & Status | IN_PROGRESS (D4 READY_FOR_REVIEW) | Request on APPROVED application, server status/verification display, Requests hub; `docs/testing/GPS_TRANSIT_INTEGRATION.md` | Successful request + lifecycle are Admin-gated; mapping Admin-only |
 
 ## Latest verification
 | Command / check | Environment | Result | Date/time | Evidence / notes |
 |---|---|---|---|---|
+| ID40 published-route correction: `npm run check`, app/spec `tsc --noEmit`, `git diff --check` | Node 24 / Angular 22 | PASSED | 2026-10-23 15:55 +08:00 | 261 Angular tests, 5 guard tests, 4 read-runner tests; production build with existing bundle warning. |
+| Rapid004 final software gates | Strict TypeScript / npm check / Capacitor / Android | PASSED | 2026-10-23 | 258 Angular + 5 guard + 4 runner tests; lint/build/native tasks pass. Exact commands/hash in docs/testing/D004_ACCEPTANCE_RESULTS.md. |
+| Rapid004 live public acceptance | Loopback shared API | 6 PASSED | 2026-10-23 | Absolute PowerShell wrapper with -PublicOnly works from parent cwd; routes/geometry/health/unauthenticated denial. |
+| Rapid004 protected acceptance | Fixture credential prerequisite | CREDENTIALS_NOT_CONFIGURED | 2026-10-23 | Approved runner environment absent; no login attempted, no unrelated credentials accessed. |
+| Rapid004 write acceptance | D-SEC-001 | MUTATION_ATTESTATION_PENDING | 2026-10-23 | Proposed signed supervised runtime/database/fixture attestation, isolated writes and same-transaction binding; not approved or implemented. Guard unchanged. |
+| Rapid delivery final strict TypeScript | App + spec --noEmit | PASSED | 2026-10-23 | Both projects exit 0 on final source. |
+| Final Android gate + APK scan | JDK 21.0.6 / Gradle 8.14.3 / Android SDK | PASSED | 2026-10-23 | 232 tasks (172 executed/60 current), 1m20s; 5,100,567-byte APK; 73 JS assets, zero fixture markers. |
+| Rapid delivery final npm run check | Node 24.19.0 / Angular 22.2.3 / Vitest 5.0.5 | PASSED (bundle warning) | 2026-10-23 | 17 files, 247 Angular tests; 5 harness safety cases; production build 935.23 kB. |
+| Production fixture exclusion | Final production JS scan | PASSED | 2026-10-23 | 71 assets, zero fixture-vehicle/DEMO ONLY/Fixture scenarios/Tracking fixture preview markers. |
+| Browser fixture/guard verification | In-app Chromium, 390x844 | PASSED | 2026-10-23 | Stale/offline UNKNOWN/no coordinates; denied clears fields; protected Driver home redirects to sign-in; screenshots in docs/evidence/rapid-delivery. |
+| Android first native gate | Gradle 8.14.3 / JDK 21.0.6 / installed SDK | PASSED | 2026-10-23 | lintDebug testDebugUnitTest assembleDebug: 232 tasks, 6m37s; final asset-resynced result follows. |
+| Runtime dependency audit | npm audit --omit=dev --package-lock-only | PASSED | 2026-10-23 | Zero vulnerabilities; no dependency/lockfile changes. |
+| Device inventory | ADB | OWNER_VERIFICATION_PENDING | 2026-10-23 | No device/emulator attached; no hardware acceptance claim. |
+| D11 unconfigured safe refusal | Node 24.19.0 | PASSED (expected exit 1) | 2026-10-23 | Refused before network; no live business writes. |
 | Claude takeover round 2: `npm run check` (incl. `test:harness-safety`) | Node 24.15.0 | PASSED (warning) | 2026-10-22 16:17 +08:00 | Lint clean; 16 files / 205 Angular tests; 5/5 Node harness safety tests; build 922.47 kB, budget warning unchanged. |
 | Claude: harness guard mutation check | Node 24.15.0 | PASSED | 2026-10-22 16:17 +08:00 | With the allowlist forced open, 4 of 5 safety tests fail (all behavioral ones); restored source passes 5/5. |
 | Claude: `npm run test:business` unconfigured / non-loopback | Node 24.15.0 | PASSED (safe refusal) | 2026-10-22 16:17 +08:00 | Both exit 1 with `Refusing D11` before any network request. No database contacted. |
@@ -136,6 +154,61 @@
 - State: OWNER_VERIFICATION_PENDING; not required for documentation recovery.
 
 ## Activity log (newest first; preserve prior entries)
+### 2026-10-23 — ID40 published-route summary correction
+- My Jeepney now checks the official route and published direction statuses before showing origin/destination guidance, matching the existing assigned-route map. Added two focused inactive-status cases. No API contract, authorization, GPS or mutation behavior changed.
+- `npm run check` passed: lint, 17 Angular files / 261 tests, five mutation-guard tests, four read-runner tests and production build (935.56 kB initial, existing 700 kB warning). Strict app/spec TypeScript and `git diff --check` passed. Authenticated fixture reads and physical-device acceptance were not rerun or claimed; credential and device gates remain.
+
+### 2026-10-23 — Rapid004 autonomous verification and D-SEC-001 safety gate
+- Fixed TS2339 by direct HttpErrorResponse/status narrowing; retained session rejection classification. Added 429 wait messages and refresh-throttle session-retention regression.
+- Typed merged route-assignment success; targeted G11 authoritative readback now precedes current-state success. Mocked tests cover supersession and accepted POST/readback failure. No real route writes executed.
+- Added guarded, redirect-refusing read runner and masked PowerShell wrapper. Verified script only exists in isolated worktree; fixed cwd/report resolution and added -PublicOnly. Absolute invocation from parent directory passed six public API checks. Managed prompt cancelled; environment-presence checks found no approved credential. Authenticated report records CREDENTIALS_NOT_CONFIGURED with zero login attempts.
+- Passed 258 Angular tests, 5 unchanged guard tests, 4 runner tests, strict app/spec types, lint, production build, Capacitor sync and Android lint/unit/assemble. Both protected roots redirect to sign-in in browser; no physical device attached. Latest evidence in docs/testing/D004_ACCEPTANCE_RESULTS.md.
+- Submitted proposed runtime/database/fixture attestation and isolated write-test procedure for review. No guard changes, resets, writes, merges or deployment. Six primary IDs remain candidates with item-specific gaps; absent jeepney DELETE and Operator mapping contracts explicitly escalated. ID41 static route guidance nominated only for Tech Lead alternative acceptance review.
+
+### 2026-10-23 — Rapid Delivery004 recovery, API reachability and contract audit
+- Resumed existing clean PR9 branch at 9767be8; original checkout preserved. Remote mobile main remains9f0765d; PR9 still OPEN with GitGuardian SUCCESS and no reviews/comments. No stash, reset, rebase, merge or backend checkout edit.
+- Live loopback GETs: /api/health200 (database ok), /documentation/json200 (47 paths), /api/transit-routes200 (two public routes), unauthenticated /api/me/assignment401 AUTH_REQUIRED. No authenticated or business-write probe executed.
+- Current OpenAPI confirms exact POST /route-assignments201 assignment fields and G11 GET reconciliation endpoint; no fixture/runtime isolation attestation path. Read merged API fixture and mobile testing policy docs. Policy001 permits development acceptance separately from OWNER_DEVICE_TEST_PENDING; no owner device access required for development review.
+- Fixture docs require exact PostgreSQL database/server/port/schema verification before mutation. This session has no configured fixture credential; approved running-API binding/mutation procedure requested through async user input. The unconditional harness business-write refusal remains intact; no fixture seed/reset/cleanup performed.
+- Proceeding with authorized HTTP429/session-safe presentation and typed route-assignment/reconciliation repairs. Real integration depends on the credential/procedure evidence; no new acceptance claimed.
+
+### 2026-10-23 — PR9 opened, source head and security checks confirmed
+- Committed/pushed implementation a46c245b28ee16c607a25075fb4648e03bd335ff and opened [PR9](https://github.com/erwin-io/valryde-mobile-driver-operator/pull/9) against main; attached to chat. GitHub confirms OPEN, MERGEABLE, CLEAN and GitGuardian SUCCESS on that source head.
+- Recovery recheck: original checkout clean, isolated worktree clean after source commit, no stashes or local unpublished commits. All historical branches/worktree source preserved. This follow-up changes status/acceptance documentation only; application verification remains tied to unchanged source a46c245.
+- Next: Agent G review/acceptance/merge; owner/device/SMTP/App Links, isolated live API and Agent B public tracking gates remain. No new whole checklist ID marked Completed.
+
+### 2026-10-23 — Final native artifact verified; review submission prepared
+- Final strict app/spec TypeScript both exit 0. Capacitor sync and asset-resynced Gradle lintDebug/testDebugUnitTest/assembleDebug PASSED (232 tasks, 172 executed/60 up-to-date; 1m20s).
+- APK: 5,100,567 bytes; SHA-256 9778DDEB692A6A7D72A02BD5E4EBAE2F2265D9430E9C026EE4E8DD95A0742E27. ZIP inspection: 73 JavaScript assets including Capacitor bridge files, zero development fixture markers. Production browser asset scan separately 71/zero. Generated dependency paths normalized; no Android tracked diff remains.
+- Final npm run check: 247 tests + 5 harness safety, lint/build PASS; 935.23 kB warning retained. Browser screenshots and acceptance matrix committed with source. Original checkout still clean; no stashes/unpushed historical work lost. Temporary browser/server closed after QA.
+- Prepared focused PR for G review; no accepted/Completed ID, self-merge, deployment or live business-write claim.
+
+### 2026-10-23 — Final source gate: 247 tests and Android validation
+- Final source npm run check PASSED: lint, 17 files / 247 Angular tests, 5 harness-safety tests and production build (935.23 kB warning only). Separate final source test run also PASSED 247. No new source changes after these checks.
+- Production packaging scan PASSED with 71 JavaScript assets and zero fixture screen/observation markers. First Android sync + Gradle lint/unit/build PASSED all 232 tasks. Final production assets resynced; incremental native confirmation pending in this entry.
+- Runtime audit PASSED zero vulnerabilities. Strict app/spec TypeScript and git diff hygiene checked separately. ADB no-device result and safe D11 refusal preserved; no live API acceptance claimed.
+- Original checkout is still clean at 79f94a9. Agent G retains review and merge authority; new whole checklist completion remains unasserted.
+
+### 2026-10-23 — Rapid delivery 003: tracking readiness and release verification
+- Continued original takeover goal under directive 003. Added Driver read-only G2 groupmates, own/fleet/compliance/summary availability views, typed local presentation adapter and explicit development fixture preview; no approved Agent B wire DTO invented, no live GPS/metrics/compliance fabricated.
+- Full 245-case Angular run and five harness safety cases PASSED after replacing fragile module-level native mocks with an injectable native-bridge seam. Earlier fresh-instance-only attempt was insufficient and was not treated as the final fix. Real Capacitor defaults, device-only/no-iCloud flags and browser no-persistence remain unchanged; session race suite preserved.
+- Browser 390x844: synthetic current/stale/offline/denied states verified; stale/offline hide coordinates/use UNKNOWN, denied clears detail; unauthenticated /driver/home redirected to sign-in. Two screenshots saved under docs/evidence/rapid-delivery. No test credentials entered.
+- Initial production scan found a lazy fixture chunk despite a disabled route. Production file replacement corrected packaging; subsequent scan found zero fixture markers in 71 JavaScript assets. Two additional revoked-access/missing-coordinate cases and final native packaging are in the submission check.
+- Production bundle 935.23 kB: warning above 700 kB, below 1 MB error limit. Runtime dependency audit zero vulnerabilities. D11 unconfigured run safely refuses before network. ADB inventory empty; physical native acceptance unavailable.
+- Capacitor sync PASSED; Android Gradle checks in progress. Generated native dependency paths are local-only and will be normalized before commit. ESLint now ignores generated Capacitor assets/caches so post-sync checks inspect source.
+- Acceptance mapping and recovery evidence: docs/testing/AGENT_D_RAPID_DELIVERY_ACCEPTANCE.md. No other repository edited; no self-merge/deploy/shared checklist update.
+
+### 2026-10-23 — G2/G3/G4 implementation and verification checkpoint
+- Implemented server-confirmed Driver assignment in home/map, privacy-minimized paginated memberships, confirmed removals, and confirmed unassign with REST reconciliation and repeat-tap guards. Directory lookup covers all pages and disabled assignments. Existing 38/46 account implementation preserved.
+- Checks: lint, strict app/spec typecheck, production build and 5 harness-safety cases pass. Initial compile/lint findings corrected (missing lifecycle implementation, disabled-state template union, unused imports, interface style). Standard forks could not start workers; serial threads produced 225 pass/1 secure-storage mock failure. Feature tests all pass; this is not a clean full-suite claim yet.
+- Isolated worker probe passed. Dependency-junction removal attempt rejected by automatic approval review (reason only: blocked by policy); junction preserved; investigating non-destructive preserveSymlinks test configuration. No discovered source or local work removed.
+- No live API/DB writes, no deployment/merge, no secrets read. Physical-device acceptance remains pending.
+
+### 2026-10-23 — Emergency Codex recovery audit
+- Executed every directive Phase 1 Git command before source edits; fetch succeeded. No lost or unmerged local changes found. Existing implementation is merged via PR8; no stash applied and no destructive operation.
+- New isolated worktree/branch from 9f0765d; node_modules junction reuses installed dependencies only. Prior canonical checkout untouched; local .git/info/exclude ignores nested worktrees.
+- Recovered stale handoff gates: merged API fleet source now exposes G2 members/removal, G3 /me/assignment and G4 DELETE driver-assignment. IDs 39/40/49/50 can advance independently. New tests not yet run.
+
 ### 2026-10-22 16:17 +08:00 — Claude takeover round 2: PR #8 correction recovered, verified and completed (`AGENT_D_PR8_ISOLATION_CORRECTED_READY_FOR_REVIEW`)
 - Action / reason: Directive VALRYDE-CLAUDE-D-TAKEOVER-ROUND2-001. Codex hit its usage limit after implementing the Agent G isolation correction locally; PR #8 still showed `1c7ac76`. Claude temporarily owns Agent D execution.
 - Checklist/issue: D11 integration-harness safety; no application feature behavior changed.

@@ -10,7 +10,7 @@ export const isClientError = (error: unknown): error is HttpErrorResponse =>
 
 /** Agent A error code (e.g. `EMAIL_NOT_VERIFIED`) when the server rejected the request. */
 export function apiErrorCode(error: unknown): string | null {
-  if (!isClientError(error)) return null;
+  if (!(error instanceof HttpErrorResponse) || (!CLIENT_ERRORS.includes(error.status) && error.status !== 429)) return null;
   return (error.error as Partial<ApiErrorEnvelope> | null)?.error?.code ?? null;
 }
 
@@ -21,6 +21,15 @@ const FRIENDLY: Record<string, string> = {
 
 /** Plain-language message: the server's message for rejections, a connection message otherwise. */
 export function apiErrorMessage(error: unknown, fallback: string): string {
+  // A throttle is temporary, not a rejected session. Keep isClientError unchanged:
+  // SessionService uses that classification to decide whether to clear tokens.
+  if (error instanceof HttpErrorResponse && error.status === 429) {
+    const header = error.headers.get('Retry-After');
+    const seconds = header && /^\d+$/.test(header) ? Number(header) : null;
+    return seconds !== null && Number.isSafeInteger(seconds) && seconds > 0
+      ? `Too many requests. Try again in ${seconds} ${seconds === 1 ? 'second' : 'seconds'}.`
+      : 'Too many requests. Please wait before trying again.';
+  }
   if (!isClientError(error)) return 'VALRYDE is unavailable right now. Check your connection and try again.';
   const body = (error.error as Partial<ApiErrorEnvelope> | null)?.error;
   return (body?.code && FRIENDLY[body.code]) || body?.message || fallback;

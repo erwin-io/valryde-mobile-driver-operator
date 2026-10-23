@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, inject, input, type OnInit, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, input, type OnInit, type OnDestroy, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { IonButton, IonContent, IonHeader, IonIcon, IonItem, IonLabel, IonList, IonTitle, IonToolbar } from '@ionic/angular';
 import { addIcons } from 'ionicons';
@@ -26,23 +26,25 @@ import { StatusPillComponent } from '../shared/status-pill.component';
       <main class="page-stack">
         <section class="welcome-block">
           <p class="eyebrow">DRIVER ACCESS</p>
-          <h1>Your authorized vehicles</h1>
-          <p>Review server-authorized jeepneys and their effective routes. Active assignment confirmation is not available yet.</p>
+          <h1>My jeepney</h1>
+          <p>Your current assignment and official route are confirmed by your operator.</p>
         </section>
 
-        @if (vehicles() === null || vehicles()!.length === 0) {
+        @if (loading()) {
+          <p role="status">Loading your assignment…</p>
+        } @else if (vehicles() === null || vehicles()!.length === 0) {
           <app-state-panel
             panelId="driver-assignment"
             icon="bus-outline"
-            [title]="loadFailed() ? 'Jeepneys unavailable' : 'No authorized jeepney'"
+            [title]="loadFailed() ? 'Jeepneys unavailable' : 'No assigned jeepney'"
             [message]="loadFailed() ? 'Your jeepneys could not be loaded. Check your connection and try again.' : 'An authorized operator must associate your account and assign an eligible jeepney.'"
             [actionLabel]="loadFailed() ? 'Try again' : undefined"
             (action)="load()"
           />
         } @else {
           <section aria-labelledby="driver-vehicles-heading">
-            <h2 id="driver-vehicles-heading" class="section-heading">Jeepneys you can access</h2>
-            <p class="supporting-text">VALRYDE doesn't yet show which one you are assigned to today.</p>
+            <h2 id="driver-vehicles-heading" class="section-heading">Your assigned jeepney</h2>
+            <p class="supporting-text">This is your current server-confirmed assignment.</p>
             <ion-list inset="true">
               @for (v of vehicles(); track v.jeepney.id) {
                 <ion-item [routerLink]="foundationPreview() ? undefined : '/driver/map'" [queryParams]="foundationPreview() ? undefined : { jeepneyId: v.jeepney.id }" [detail]="!foundationPreview()">
@@ -50,6 +52,7 @@ import { StatusPillComponent } from '../shared/status-pill.component';
                   <ion-label class="ion-text-wrap">
                     <h2>{{ v.jeepney.plateNo }}</h2>
                     <p>{{ v.route }}</p>
+                    @if (v.jeepney.description) { <p>{{ v.jeepney.description }}</p> }
                   </ion-label>
                   <app-status-pill slot="end" [tone]="tone(v.jeepney.status)">{{ label(v.jeepney.status) }}</app-status-pill>
                 </ion-item>
@@ -64,14 +67,14 @@ import { StatusPillComponent } from '../shared/status-pill.component';
             <app-status-pill>Unknown</app-status-pill>
           </div>
           <ion-list inset="true">
-            <ion-item>
+            <ion-item routerLink="/driver/tracking" detail="true">
               <ion-icon name="pulse-outline" slot="start" aria-hidden="true" />
               <ion-label><h3>Tracker status</h3><p>No authorized tracking state</p></ion-label>
             </ion-item>
           </ion-list>
         </section>
 
-        <ion-button expand="block" size="large" routerLink="/driver/map" [disabled]="foundationPreview()">Open authorized route map</ion-button>
+        <ion-button expand="block" size="large" routerLink="/driver/map" [disabled]="foundationPreview() || loading() || !vehicles()?.length">Open assigned route map</ion-button>
       </main>
     </ion-content>
   `,
@@ -86,8 +89,11 @@ import { StatusPillComponent } from '../shared/status-pill.component';
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class DriverHomePage implements OnInit {
+export class DriverHomePage implements OnInit, OnDestroy {
   private readonly api = inject(FleetApiService);
+  private loadEpoch = 0;
+  private entered = false;
+  protected readonly loading = signal(true);
   readonly foundationPreview = input(false);
   /** null = not loaded. Each jeepney carries the server's effective-route summary. */
   protected readonly vehicles = signal<{ jeepney: Jeepney; route: string }[] | null>(null);
@@ -99,21 +105,51 @@ export class DriverHomePage implements OnInit {
     if (!this.foundationPreview()) void this.load();
   }
 
+  ngOnDestroy(): void { this.ionViewWillLeave(); }
+
+  ionViewWillLeave(): void { ++this.loadEpoch; this.vehicles.set(null); this.loading.set(true); }
+
+  ionViewWillEnter(): void {
+    if (this.entered && !this.foundationPreview()) void this.load();
+    this.entered = true;
+  }
+
   protected async load(): Promise<void> {
+    const epoch = ++this.loadEpoch;
+    this.loading.set(true);
+    this.vehicles.set(null);
     this.loadFailed.set(false);
     try {
+      const assignment = await firstValueFrom(this.api.currentAssignment());
+      if (epoch !== this.loadEpoch) return;
+      if (!assignment) { this.vehicles.set([]); return; }
       const jeepneys = await firstValueFrom(this.api.listJeepneys());
-      this.vehicles.set(await Promise.all(jeepneys.map(async (jeepney) => ({ jeepney, route: await this.routeSummary(jeepney.id) }))));
+      if (epoch !== this.loadEpoch) return;
+      const jeepney = jeepneys.find(({ id }) => id === assignment.jeepneyId);
+      if (!jeepney) throw new Error('Assigned jeepney is no longer visible');
+      const route = jeepney.status === 'ACTIVE'
+        ? await this.routeSummary(jeepney.id)
+        : 'Route guidance unavailable until this jeepney is active';
+      if (epoch === this.loadEpoch) this.vehicles.set([{ jeepney, route }]);
     } catch {
-      this.loadFailed.set(true);
+      if (epoch === this.loadEpoch) this.loadFailed.set(true);
+    } finally {
+      if (epoch === this.loadEpoch) this.loading.set(false);
     }
   }
 
   private async routeSummary(jeepneyId: string): Promise<string> {
     try {
-      const route = await firstValueFrom(this.api.effectiveRoute(jeepneyId));
-      return route ? `${route.direction.originName} → ${route.direction.destinationName}` : 'No route assigned';
+      const effective = await firstValueFrom(this.api.effectiveRoute(jeepneyId));
+      if (!effective) return 'No route assigned';
+      if (effective.direction.status !== 'ACTIVE') return 'Official route unavailable';
+      const route = await firstValueFrom(this.api.getRoute(effective.direction.routeId));
+      const publishedDirection = route.directions.find(({ id }) => id === effective.direction.id);
+      return route.status === 'ACTIVE' && publishedDirection?.status === 'ACTIVE'
+        ? `${publishedDirection.originName} → ${publishedDirection.destinationName}`
+        : 'Official route unavailable';
     } catch (error: unknown) {
+      if (['FORBIDDEN', 'NOT_FOUND', 'AUTH_REQUIRED', 'SESSION_REVOKED'].includes(apiErrorCode(error) ?? '')) throw error;
       return apiErrorCode(error) === 'ROUTE_ASSIGNMENT_CONFLICT' ? 'Route unavailable — contact your operator' : 'Route not available';
     }
   }

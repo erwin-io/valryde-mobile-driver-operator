@@ -1,20 +1,14 @@
 import { ChangeDetectionStrategy, Component, inject, signal, type OnDestroy, type OnInit } from '@angular/core';
-import { ActivatedRoute } from '@angular/router';
 import {
-  IonButton,
   IonContent,
   IonHeader,
-  IonIcon,
-  IonItem,
-  IonLabel,
-  IonList,
   IonNote,
   IonSpinner,
   IonTitle,
   IonToolbar,
 } from '@ionic/angular';
 import { addIcons } from 'ionicons';
-import { busOutline, mapOutline, swapHorizontalOutline } from 'ionicons/icons';
+import { busOutline, mapOutline } from 'ionicons/icons';
 import { firstValueFrom } from 'rxjs';
 
 import { apiErrorCode, apiErrorMessage } from '../core/api-error';
@@ -38,13 +32,8 @@ type RouteState = 'choose' | 'loading' | 'ready' | 'none' | 'inactive' | 'confli
   selector: 'app-driver-route-map-page',
   standalone: true,
   imports: [
-    IonButton,
     IonContent,
     IonHeader,
-    IonIcon,
-    IonItem,
-    IonLabel,
-    IonList,
     IonNote,
     IonSpinner,
     IonTitle,
@@ -59,8 +48,8 @@ type RouteState = 'choose' | 'loading' | 'ready' | 'none' | 'inactive' | 'confli
       <main class="page-stack">
         <section>
           <p class="eyebrow">DRIVER ROUTE</p>
-          <h1>Authorized vehicle route</h1>
-          <p class="supporting-text">VALRYDE can show routes for vehicles your account may access. Active Driver assignment confirmation still requires Agent A's G3 contract.</p>
+          <h1>Your assigned route</h1>
+          <p class="supporting-text">Your current vehicle comes from your server-confirmed Driver assignment.</p>
         </section>
 
         @if (vehiclesLoading()) {
@@ -68,32 +57,16 @@ type RouteState = 'choose' | 'loading' | 'ready' | 'none' | 'inactive' | 'confli
         } @else if (vehiclesError()) {
           <app-state-panel panelId="driver-route-vehicles-error" icon="bus-outline" title="Vehicles unavailable" [message]="vehiclesError()!" actionLabel="Try again" (action)="loadVehicles()" />
         } @else if (vehicles().length === 0) {
-          <app-state-panel panelId="driver-route-no-vehicles" icon="bus-outline" title="No authorized vehicle" message="Your account does not currently have access to a jeepney. Ask your operator to verify your association and assignment." />
-        } @else if (state() === 'choose') {
-          <section aria-labelledby="vehicle-picker-heading">
-            <h2 id="vehicle-picker-heading" class="section-heading">Choose an authorized jeepney</h2>
-            <p class="supporting-text">Choosing a vehicle here does not mark it as your active assignment.</p>
-            <ion-list inset="true">
-              @for (vehicle of vehicles(); track vehicle.id) {
-                <ion-item button="true" detail="true" (click)="selectVehicle(vehicle)">
-                  <span slot="start" class="swatch" [style.background]="vehicle.colorHex" aria-hidden="true"></span>
-                  <ion-label><h2>{{ vehicle.plateNo }}</h2><p>{{ label(vehicle.status) }}</p></ion-label>
-                </ion-item>
-              }
-            </ion-list>
-          </section>
+          <app-state-panel panelId="driver-route-no-vehicles" icon="bus-outline" title="No assigned vehicle" message="Your account does not currently have an assigned jeepney. Ask your operator to verify your association and assignment." />
         } @else if (selectedVehicle(); as vehicle) {
           <section class="vehicle-summary" aria-labelledby="selected-vehicle-heading">
             <div>
-              <p class="eyebrow">AUTHORIZED VEHICLE</p>
+              <p class="eyebrow">ASSIGNED VEHICLE</p>
               <h2 id="selected-vehicle-heading">{{ vehicle.plateNo }}</h2>
-              <p>Active Driver assignment is not confirmed.</p>
+              <p>Current assignment confirmed by your operator.</p>
             </div>
             <app-status-pill [tone]="tone(vehicle.status)">{{ label(vehicle.status) }}</app-status-pill>
           </section>
-          @if (vehicles().length > 1) {
-            <ion-button fill="outline" size="small" (click)="chooseVehicle()"><ion-icon name="swap-horizontal-outline" slot="start" />Change vehicle</ion-button>
-          }
 
           @switch (state()) {
             @case ('loading') { <p role="status"><ion-spinner name="crescent" /> Loading official route…</p> }
@@ -155,7 +128,6 @@ type RouteState = 'choose' | 'loading' | 'ready' | 'none' | 'inactive' | 'confli
 })
 export class DriverRouteMapPage implements OnInit, OnDestroy {
   private readonly api = inject(FleetApiService);
-  private readonly activatedRoute = inject(ActivatedRoute);
   private loadEpoch = 0;
   private hasLoadedOnce = false;
 
@@ -170,15 +142,18 @@ export class DriverRouteMapPage implements OnInit, OnDestroy {
   protected readonly tone = statusTone;
 
   constructor() {
-    addIcons({ busOutline, mapOutline, swapHorizontalOutline });
+    addIcons({ busOutline, mapOutline });
   }
 
   ngOnInit(): void {
     void this.loadVehicles();
   }
 
-  ngOnDestroy(): void {
+  ngOnDestroy(): void { this.ionViewWillLeave(); }
+
+  ionViewWillLeave(): void {
     ++this.loadEpoch;
+    this.vehicles.set([]); this.selectedVehicle.set(null); this.routeView.set(null);
   }
 
   ionViewWillEnter(): void {
@@ -190,15 +165,21 @@ export class DriverRouteMapPage implements OnInit, OnDestroy {
     this.vehiclesLoading.set(true);
     this.vehiclesError.set(null);
     try {
-      const vehicles = await firstValueFrom(this.api.listJeepneys());
+      this.vehicles.set([]);
+      this.selectedVehicle.set(null);
+      this.routeView.set(null);
+      const assignment = await firstValueFrom(this.api.currentAssignment());
+      if (epoch !== this.loadEpoch) return;
+      if (!assignment) { this.state.set('choose'); return; }
+      const visible = await firstValueFrom(this.api.listJeepneys());
+      if (epoch !== this.loadEpoch) return;
+      const vehicle = visible.find(({ id }) => id === assignment.jeepneyId);
+      if (!vehicle) throw new Error('Assigned jeepney is no longer visible. Refresh your assignment.');
+      const vehicles = [vehicle];
       if (epoch !== this.loadEpoch) return;
       this.vehicles.set(vehicles);
-      const requestedVehicleId = this.activatedRoute.snapshot.queryParamMap.get('jeepneyId');
-      const requested = vehicles.find(({ id }) => id === requestedVehicleId);
-      const automatic = requested ?? (vehicles.length === 1 ? vehicles[0] : undefined);
       this.vehiclesLoading.set(false);
-      if (automatic) await this.selectVehicle(automatic);
-      else this.state.set('choose');
+      await this.selectVehicle(vehicle);
     } catch (error: unknown) {
       if (epoch === this.loadEpoch) this.vehiclesError.set(apiErrorMessage(error, 'Your authorized vehicles could not be loaded.'));
     } finally {
@@ -207,14 +188,8 @@ export class DriverRouteMapPage implements OnInit, OnDestroy {
     }
   }
 
-  protected chooseVehicle(): void {
-    ++this.loadEpoch;
-    this.selectedVehicle.set(null);
-    this.routeView.set(null);
-    this.state.set('choose');
-  }
-
   protected async selectVehicle(vehicle: Jeepney): Promise<void> {
+    if (!this.vehicles().some(({ id }) => id === vehicle.id)) return;
     const epoch = ++this.loadEpoch;
     this.selectedVehicle.set(vehicle);
     this.routeView.set(null);
@@ -251,7 +226,10 @@ export class DriverRouteMapPage implements OnInit, OnDestroy {
       this.state.set('ready');
     } catch (error: unknown) {
       if (epoch !== this.loadEpoch) return;
-      if (apiErrorCode(error) === 'ROUTE_ASSIGNMENT_CONFLICT') this.state.set('conflict');
+      if (['FORBIDDEN', 'NOT_FOUND', 'AUTH_REQUIRED', 'SESSION_REVOKED'].includes(apiErrorCode(error) ?? '')) {
+        this.vehicles.set([]); this.selectedVehicle.set(null); this.routeView.set(null);
+        this.vehiclesError.set('Your assigned vehicle is no longer available. Refresh your assignment or contact your operator.');
+      } else if (apiErrorCode(error) === 'ROUTE_ASSIGNMENT_CONFLICT') this.state.set('conflict');
       else {
         this.routeError.set(apiErrorMessage(error, 'The official route could not be loaded.'));
         this.state.set('error');
@@ -260,7 +238,6 @@ export class DriverRouteMapPage implements OnInit, OnDestroy {
   }
 
   protected reloadRoute(): void {
-    const vehicle = this.selectedVehicle();
-    if (vehicle) void this.selectVehicle(vehicle);
+    void this.loadVehicles();
   }
 }

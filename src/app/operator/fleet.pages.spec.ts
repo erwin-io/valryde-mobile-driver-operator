@@ -4,6 +4,7 @@ import { TestBed } from '@angular/core/testing';
 import { ActivatedRoute, convertToParamMap, provideRouter, Router } from '@angular/router';
 import { of, Subject, throwError } from 'rxjs';
 
+import { DriverGroupPage } from '../driver/driver-group.page';
 import { DriverHomePage } from '../driver/driver-home.page';
 import { FleetApiService } from '../core/fleet-api.service';
 import type { DriverDirectoryEntry, FleetGroup, GpsSetupRequest, Jeepney, TransitRoute, VehicleApplication } from '../core/fleet.models';
@@ -105,6 +106,10 @@ const rejected = (status: number, code: string, message = code) =>
 describe('Operator fleet pages', () => {
   type Mock = ReturnType<typeof vi.fn>;
   let api: Record<
+    | 'currentAssignment'
+    | 'listGroupMembers'
+    | 'removeGroupMember'
+    | 'unassignDriver'
     | 'listJeepneys'
     | 'createJeepney'
     | 'updateJeepney'
@@ -119,6 +124,7 @@ describe('Operator fleet pages', () => {
     | 'listRoutes'
     | 'getRoute'
     | 'assignRoute'
+    | 'listRouteAssignments'
     | 'listDrivers'
     | 'assignDriver'
     | 'addDriverToGroup'
@@ -160,6 +166,10 @@ describe('Operator fleet pages', () => {
 
   beforeEach(() => {
     api = {
+      currentAssignment: vi.fn(() => of({ jeepneyId: 'j-1' })),
+      listGroupMembers: vi.fn(() => of({ members: [], pagination: { page: 1, pageSize: 100, total: 0, totalPages: 0 } })),
+      removeGroupMember: vi.fn(() => of(undefined)),
+      unassignDriver: vi.fn(() => of({})),
       listJeepneys: vi.fn(() => of([jeepney(), jeepney({ id: 'j-2', plateNo: 'XYZ 789', status: 'ACTIVE' })])),
       createJeepney: vi.fn(() => of(jeepney({ id: 'j-new' }))),
       updateJeepney: vi.fn(() => of(jeepney())),
@@ -173,7 +183,8 @@ describe('Operator fleet pages', () => {
       submitGpsRequest: vi.fn(() => of(gpsRequest())),
       listRoutes: vi.fn(() => of({ routes: [transitRoute], pagination: { page: 1, pageSize: 20, total: 1, totalPages: 1 } })),
       getRoute: vi.fn(() => of(transitRoute)),
-      assignRoute: vi.fn(() => of({})),
+      assignRoute: vi.fn((routeDirectionId, target) => of({ id: 'ra-1', routeDirectionId, jeepneyId: target.jeepneyId ?? null, groupId: target.groupId ?? null, activeTo: null })),
+      listRouteAssignments: vi.fn(target => of({ assignments: [{ id: 'ra-1', routeDirectionId: 'd-1', jeepneyId: target.jeepneyId ?? null, groupId: target.groupId ?? null, activeTo: null }], pagination: { totalPages: 1 } })),
       listDrivers: vi.fn(() =>
         of({ drivers: [driver()], pagination: { page: 1, pageSize: 20, total: 1, totalPages: 1 } }),
       ),
@@ -418,8 +429,8 @@ describe('Operator fleet pages', () => {
       await page.assignDriver();
       await settle();
       expect(api.assignDriver).toHaveBeenCalledWith('j-1', 'd-1');
-      expect(api.listDrivers).toHaveBeenLastCalledWith({ status: 'ACTIVE', page: 1, pageSize: 100 });
-      expect(text()).toContain('Juan Dela Cruz is now assigned to this jeepney.');
+      expect(api.listDrivers).toHaveBeenLastCalledWith({ page: 1, pageSize: 100 });
+      expect(text()).toContain('Assignment accepted. Driver directory refreshed.');
     });
 
     it.each([
@@ -487,14 +498,16 @@ describe('Operator fleet pages', () => {
       expect((await render(GroupDetailPage, { id: 'other-group' })).text()).toContain('Group not available');
     });
 
-    it('shows known Driver membership while clearly retaining G2 read/removal gates', async () => {
+    it('renders authoritative membership including disabled Drivers', async () => {
+      api.listGroupMembers.mockReturnValue(of({ members: [{ memberType: 'DRIVER', driverId: 'd-1', displayName: 'Juan Dela Cruz', status: 'DISABLED', activeJeepneyId: null, joinedAt: '' }], pagination: { page: 1, total: 1, totalPages: 1 } }));
       api.listDrivers.mockReturnValue(
         of({ drivers: [driver({ groupIds: ['g-1'] })], pagination: { page: 1, pageSize: 100, total: 1, totalPages: 1 } }),
       );
       const { text } = await render(GroupDetailPage, { id: 'g-1' });
       expect(text()).toContain('Juan Dela Cruz');
-      expect(text()).toContain('Known member · removal unavailable');
-      expect(text()).toContain('G2 does not expose current jeepney membership');
+      expect(text()).toContain('Disabled');
+      expect(text()).toContain('Remove');
+      expect(api.listGroupMembers).toHaveBeenCalledWith('g-1', 1);
     });
 
     it('adds a Driver and jeepney with their business IDs', async () => {
@@ -506,11 +519,11 @@ describe('Operator fleet pages', () => {
       await page.addDriver(driver());
       await settle();
       expect(api.addDriverToGroup).toHaveBeenCalledWith('g-1', 'd-1');
-      expect(text()).toContain('Known Driver memberships were refreshed.');
+      expect(text()).toContain('Membership refreshed.');
       await page.addJeepney(jeepney());
       await settle();
       expect(api.addJeepneyToGroup).toHaveBeenCalledWith('g-1', 'j-1');
-      expect(text()).toContain('Membership listing and removal remain unavailable until G2.');
+      expect(text()).toContain('was added. Membership refreshed.');
     });
 
     it('serializes group additions while a mutation is pending', async () => {
@@ -579,20 +592,213 @@ describe('Operator fleet pages', () => {
       expect(text()).toMatch(/Drivers[\s\S]*—/);
     });
 
-    it('lists the jeepneys a Driver can access with server route summaries, without claiming an assignment', async () => {
+    it('shows only the assigned jeepney and its server route summary', async () => {
+      api.listJeepneys.mockReturnValue(of([jeepney({ status: 'ACTIVE' }), jeepney({ id: 'j-2', plateNo: 'XYZ 789' })]));
       api.effectiveRoute.mockImplementation((id: string) =>
-        id === 'j-1' ? of({ direction: { originName: 'Cubao', destinationName: 'Quiapo' } }) : rejected(409, 'ROUTE_ASSIGNMENT_CONFLICT'),
+        id === 'j-1' ? of({ direction: transitRoute.directions[0] }) : rejected(409, 'ROUTE_ASSIGNMENT_CONFLICT'),
       );
       const { text } = await render(DriverHomePage);
-      expect(text()).toContain('Jeepneys you can access');
-      expect(text()).toContain("doesn't yet show which one you are assigned to");
+      expect(text()).toContain('Your assigned jeepney');
+      expect(text()).not.toContain('XYZ 789');
       expect(text()).toContain('Cubao → Quiapo');
-      expect(text()).toContain('Route unavailable — contact your operator');
+      expect(api.effectiveRoute).not.toHaveBeenCalledWith('j-2');
+    });
+
+    it.each(['route', 'direction'])('withholds My Jeepney guidance when the published %s is inactive', async inactive => {
+      api.listJeepneys.mockReturnValue(of([jeepney({ status: 'ACTIVE' })]));
+      api.effectiveRoute.mockReturnValue(of({ direction: transitRoute.directions[0] }));
+      api.getRoute.mockReturnValue(of(inactive === 'route'
+        ? { ...transitRoute, status: 'INACTIVE' }
+        : { ...transitRoute, directions: [{ ...transitRoute.directions[0], status: 'INACTIVE' }] }));
+      const { text } = await render(DriverHomePage);
+      expect(text()).toContain('Official route unavailable');
+      expect(text()).not.toContain('Cubao → Quiapo');
     });
 
     it('shows the no-assignment state for a Driver without jeepneys', async () => {
-      api.listJeepneys.mockReturnValue(of([]));
-      expect((await render(DriverHomePage)).text()).toContain('No authorized jeepney');
+      api.currentAssignment.mockReturnValue(of(null));
+      expect((await render(DriverHomePage)).text()).toContain('No assigned jeepney');
+      expect(api.listJeepneys).not.toHaveBeenCalled();
+    });
+
+    it('does not present a route as usable for an inactive assigned jeepney', async () => {
+      api.listJeepneys.mockReturnValue(of([jeepney({ status: 'INACTIVE' })]));
+      const { text } = await render(DriverHomePage);
+      expect(text()).toContain('Route guidance unavailable until this jeepney is active');
+      expect(api.effectiveRoute).not.toHaveBeenCalled();
+    });
+  });
+
+
+  describe('Merged G2/G3/G4 takeover', () => {
+    const member = { memberType: 'DRIVER' as const, driverId: 'd-1', displayName: 'Member One', status: 'DISABLED' as const, activeJeepneyId: null, joinedAt: '2026-10-23T00:00:00Z' };
+    const membersResponse = (members: object[], page = 1, totalPages = 1) => of({ members, pagination: { page, pageSize: 100, total: 2, totalPages } });
+    interface GroupPage {
+      pendingRemoval: { set(value: typeof member | null): void };
+      removeMember(): Promise<void>;
+      loadMembership(reset?: boolean): Promise<boolean>;
+      load(): Promise<void>;
+      members(): object[];
+    };
+    interface VehiclePage { confirmUnassign: { set(value: boolean): void }; unassignDriver(): Promise<void> }
+
+    it('appends authoritative membership pages without inferring them from the directory', async () => {
+      api.listGroupMembers.mockReturnValueOnce(membersResponse([member], 1, 2)).mockReturnValueOnce(membersResponse([{ ...member, driverId: 'd-2', displayName: 'Member Two' }], 2, 2));
+      const { fixture, settle, text } = await render(GroupDetailPage, { id: 'g-1' });
+      expect(text()).toContain('Load more members');
+      await (fixture.componentInstance as unknown as GroupPage).loadMembership(false);
+      await settle();
+      expect(api.listGroupMembers).toHaveBeenLastCalledWith('g-1', 2);
+      expect(text()).toContain('Member One'); expect(text()).toContain('Member Two');
+      expect(text()).not.toContain('Load more members');
+    });
+
+    it('requires confirmation, serializes removal, and reconciles server membership', async () => {
+      api.listGroupMembers.mockReturnValue(membersResponse([member]));
+      const { fixture, settle, text } = await render(GroupDetailPage, { id: 'g-1' });
+      const page = fixture.componentInstance as unknown as GroupPage;
+      await page.removeMember();
+      expect(api.removeGroupMember).not.toHaveBeenCalled();
+      page.pendingRemoval.set(member);
+      fixture.detectChanges(); expect(text()).toContain('Remove Member One?');
+      const pending = new Subject<void>(); api.removeGroupMember.mockReturnValue(pending);
+      const first = page.removeMember(); const second = page.removeMember();
+      expect(api.removeGroupMember).toHaveBeenCalledTimes(1);
+      expect(api.removeGroupMember).toHaveBeenCalledWith('g-1', member);
+      api.listGroupMembers.mockReturnValue(membersResponse([]));
+      pending.next(undefined); pending.complete(); await Promise.all([first, second]); await settle();
+      expect(text()).toContain('Member removed. Membership refreshed.');
+      expect(text()).not.toContain('Member One');
+    });
+
+    it.each([401, 403, 404])('clears protected membership after a %s read failure', async status => {
+      api.listGroupMembers.mockReturnValue(membersResponse([member]));
+      const { fixture, settle, text } = await render(GroupDetailPage, { id: 'g-1' });
+      api.listGroupMembers.mockReturnValue(rejected(status, status === 404 ? 'NOT_FOUND' : 'FORBIDDEN'));
+      await (fixture.componentInstance as unknown as GroupPage).loadMembership(); await settle();
+      expect(text()).not.toContain('Member One'); expect(text()).toContain('Group membership unavailable');
+    });
+
+    it('preserves removal failure and reconciles instead of claiming success', async () => {
+      api.listGroupMembers.mockReturnValue(membersResponse([member]));
+      const { fixture, settle, text } = await render(GroupDetailPage, { id: 'g-1' });
+      const page = fixture.componentInstance as unknown as GroupPage;
+      page.pendingRemoval.set(member); api.removeGroupMember.mockReturnValue(rejected(404, 'NOT_FOUND'));
+      await page.removeMember(); await settle();
+      expect(text()).not.toContain('Member removed.');
+      expect(api.listGroupMembers).toHaveBeenCalledTimes(2);
+    });
+
+    it('ignores a stale membership result after a newer read', async () => {
+      const { fixture, settle, text } = await render(GroupDetailPage, { id: 'g-1' });
+      const page = fixture.componentInstance as unknown as GroupPage;
+      const pending = new Subject<unknown>(); api.listGroupMembers.mockReturnValueOnce(pending).mockReturnValueOnce(membersResponse([]));
+      const stale = page.loadMembership(); await page.loadMembership();
+      pending.next({ members: [member], pagination: { page: 1, total: 1, totalPages: 1 } }); pending.complete();
+      await stale; await settle(); expect(text()).not.toContain('Member One');
+    });
+
+    it('invalidates pending member reads when a group disappears on refresh', async () => {
+      const { fixture, settle, text } = await render(GroupDetailPage, { id: 'g-1' });
+      const page = fixture.componentInstance as unknown as GroupPage;
+      const pending = new Subject<unknown>(); api.listGroupMembers.mockReturnValue(pending);
+      const stale = page.loadMembership(); api.listGroups.mockReturnValue(of([])); await page.load();
+      pending.next({ members: [member], pagination: {} }); pending.complete(); await stale; await settle();
+      expect(page.members()).toEqual([]); expect(text()).toContain('Group not available');
+    });
+
+    it('does not claim confirmed membership when post-removal reconciliation fails', async () => {
+      api.listGroupMembers.mockReturnValue(membersResponse([member]));
+      const { fixture, settle, text } = await render(GroupDetailPage, { id: 'g-1' });
+      const page = fixture.componentInstance as unknown as GroupPage; page.pendingRemoval.set(member);
+      api.listGroupMembers.mockReturnValue(rejected(503, 'SERVICE_UNAVAILABLE'));
+      await page.removeMember(); await settle();
+      expect(text()).toContain('Removal accepted. Refresh membership'); expect(text()).not.toContain('Member removed. Membership refreshed.');
+    });
+
+    it('unassigns only after confirmation and reconciles before displaying success', async () => {
+      api.listDrivers.mockReturnValue(of({ drivers: [driver({ activeJeepneyId: 'j-1', status: 'DISABLED' })], pagination: { totalPages: 1 } }));
+      const { fixture, settle, text } = await render(JeepneyDetailPage, { id: 'j-1' });
+      const page = fixture.componentInstance as unknown as VehiclePage;
+      await page.unassignDriver(); expect(api.unassignDriver).not.toHaveBeenCalled();
+      page.confirmUnassign.set(true);
+      const pending = new Subject<unknown>(); api.unassignDriver.mockReturnValue(pending);
+      const first = page.unassignDriver(); const second = page.unassignDriver();
+      expect(api.unassignDriver).toHaveBeenCalledTimes(1);
+      api.listDrivers.mockReturnValue(of({ drivers: [driver()], pagination: { totalPages: 1 } }));
+      pending.next({}); pending.complete(); await Promise.all([first, second]); await settle();
+      expect(api.unassignDriver).toHaveBeenCalledWith('j-1');
+      expect(text()).toContain('Driver unassigned. Assignment state refreshed.'); expect(text()).not.toContain('Currently assigned');
+    });
+
+    it('finds an assigned disabled Driver beyond the first directory page', async () => {
+      api.listDrivers.mockReturnValueOnce(of({ drivers: [driver()], pagination: { totalPages: 2 } })).mockReturnValueOnce(of({ drivers: [driver({ driverId: 'disabled', displayName: 'Assigned Disabled Driver', status: 'DISABLED', activeJeepneyId: 'j-1' })], pagination: { totalPages: 2 } }));
+      const { text } = await render(JeepneyDetailPage, { id: 'j-1' });
+      expect(api.listDrivers).toHaveBeenLastCalledWith({ page: 2, pageSize: 100 });
+      expect(text()).toContain('Assigned Disabled Driver'); expect(text()).toContain('Unassign');
+    });
+
+    it.each([403, 409, 503])('reconciles a %s unassignment failure without a success message', async status => {
+      api.listDrivers.mockReturnValue(of({ drivers: [driver({ activeJeepneyId: 'j-1' })], pagination: { totalPages: 1 } }));
+      const { fixture, settle, text } = await render(JeepneyDetailPage, { id: 'j-1' });
+      const page = fixture.componentInstance as unknown as VehiclePage; page.confirmUnassign.set(true);
+      api.unassignDriver.mockReturnValue(rejected(status, status === 409 ? 'CONFLICT' : 'FORBIDDEN'));
+      await page.unassignDriver(); await settle();
+      expect(text()).not.toContain('Driver unassigned.'); expect(api.listDrivers).toHaveBeenCalledTimes(2);
+    });
+
+    it('clears old Driver data after assignment revocation on re-entry', async () => {
+      const { fixture, settle, text } = await render(DriverHomePage);
+      api.currentAssignment.mockReturnValue(of(null));
+      await (fixture.componentInstance as unknown as { load(): Promise<void> }).load(); await settle();
+      expect(text()).toContain('No assigned jeepney'); expect(text()).not.toContain('ABC 123');
+    });
+
+    it('clears Driver vehicle details when route access is revoked', async () => {
+      api.listJeepneys.mockReturnValue(of([jeepney({ status: 'ACTIVE' })]));
+      api.effectiveRoute.mockReturnValue(rejected(403, 'FORBIDDEN'));
+      const { text } = await render(DriverHomePage);
+      expect(text()).toContain('Jeepneys unavailable'); expect(text()).not.toContain('ABC 123');
+    });
+
+    it('does not substitute an accessible jeepney when the assigned one is missing', async () => {
+      api.currentAssignment.mockReturnValue(of({ jeepneyId: 'not-visible' }));
+      const { text } = await render(DriverHomePage);
+      expect(text()).toContain('Jeepneys unavailable'); expect(api.effectiveRoute).not.toHaveBeenCalled();
+      expect(text()).not.toContain('ABC 123'); expect(text()).not.toContain('XYZ 789');
+    });
+  });
+
+  describe('Driver group membership and tracking readiness', () => {
+    it('reads only authorized groups and never requests Operator-only Driver directory', async () => {
+      api.listGroupMembers.mockReturnValue(of({ members: [{ memberType: 'DRIVER', driverId: 'd-1', displayName: 'Groupmate', status: 'ACTIVE' }], pagination: { page: 1, totalPages: 1, total: 1 } }));
+      const { text } = await render(DriverGroupPage);
+      expect(text()).toContain('Groupmate'); expect(text()).toContain('Tracking unavailable');
+      expect(api.listDrivers).not.toHaveBeenCalled(); expect(api.removeGroupMember).not.toHaveBeenCalled();
+      expect(text()).not.toContain('Remove'); expect(text()).not.toContain('Add');
+    });
+
+    it('does not choose or read another group when several are permitted', async () => {
+      api.listGroups.mockReturnValue(of([group(), group({ id: 'g-2', name: 'Other permitted group' })]));
+      const { fixture } = await render(DriverGroupPage);
+      await (fixture.componentInstance as unknown as { select(value: FleetGroup): Promise<void> }).select(group({ id: 'not-permitted' }));
+      expect(api.listGroupMembers).not.toHaveBeenCalled();
+    });
+
+    it('clears groupmate details when visibility is revoked', async () => {
+      api.listGroupMembers.mockReturnValue(of({ members: [{ memberType: 'JEEPNEY', jeepneyId: 'j-2', plateNo: 'GROUPMATE ONLY', status: 'ACTIVE' }], pagination: { page: 1, totalPages: 1, total: 1 } }));
+      const { fixture, settle, text } = await render(DriverGroupPage);
+      expect(text()).toContain('GROUPMATE ONLY');
+      api.listGroupMembers.mockReturnValue(rejected(403, 'FORBIDDEN'));
+      await (fixture.componentInstance as unknown as { loadMembers(): Promise<void> }).loadMembers(); await settle();
+      expect(text()).not.toContain('GROUPMATE ONLY');
+    });
+
+    it('clears protected data on group refresh and never substitutes a missing membership', async () => {
+      const { fixture, settle, text } = await render(DriverGroupPage);
+      api.listGroups.mockReturnValue(of([]));
+      await (fixture.componentInstance as unknown as { load(): Promise<void> }).load(); await settle();
+      expect(text()).toContain('No group is currently available');
     });
   });
 
@@ -688,6 +894,23 @@ describe('Operator fleet pages', () => {
       await settle();
       expect(api.assignRoute).toHaveBeenCalledWith('d-1', { groupId: 'g-1' });
       expect(text()).toContain('Group North now uses Cubao → Quiapo.');
+    });
+
+    it('does not claim current success when the assignment was replaced before reconciliation', async () => {
+      api.listRouteAssignments.mockReturnValue(of({ assignments: [], pagination: { totalPages: 0 } }));
+      const { fixture, settle, text } = await render(TransitDetailPage, { routeId: 'r-1' });
+      const page = fixture.componentInstance as unknown as Detail; page.choose(transitRoute.directions[0]);
+      await page.assign('g:g-1'); await settle();
+      expect(text()).toContain('could not be confirmed as current'); expect(text()).not.toContain('now uses');
+    });
+
+    it('preserves an accepted command when the subsequent state read fails', async () => {
+      api.listRouteAssignments.mockReturnValue(rejected(503, 'SERVICE_UNAVAILABLE'));
+      const { fixture, settle, text } = await render(TransitDetailPage, { routeId: 'r-1' });
+      const page = fixture.componentInstance as unknown as Detail; page.choose(transitRoute.directions[0]);
+      await page.assign('j:j-1'); await settle();
+      expect(text()).toContain('Assignment accepted, but its current state could not be checked'); expect(text()).not.toContain('now uses');
+      expect(api.assignRoute).toHaveBeenCalledTimes(1);
     });
 
     it('serializes route assignment while the server mutation is pending', async () => {

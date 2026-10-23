@@ -54,7 +54,8 @@ export const routes: Routes = [
       { path: '', pathMatch: 'full', redirectTo: 'home' },
       { path: 'home', loadComponent: () => import('./driver/driver-home.page').then((module) => module.DriverHomePage) },
       { path: 'map', loadComponent: () => import('./driver/driver-route-map.page').then((module) => module.DriverRouteMapPage) },
-      { path: 'group', data: placeholder('Group', 'Group scope not loaded', 'Same-group details require an approved server-scoped contract.'), loadComponent: () => import('./shared/placeholder-page.component').then((module) => module.PlaceholderPageComponent) },
+      { path: 'group', loadComponent: () => import('./driver/driver-group.page').then(module => module.DriverGroupPage) },
+      { path: 'tracking', data: { title: 'My GPS and compliance', backHref: '/driver/home' }, loadComponent: () => import('./tracking/tracking.page').then(module => module.TrackingPage) },
       { path: 'events', data: placeholder('Events', 'Event contract required', 'Compliance history and events remain an Agent B integration gate.'), loadComponent: () => import('./shared/placeholder-page.component').then((module) => module.PlaceholderPageComponent) },
       ...accountRoutes,
     ],
@@ -66,6 +67,9 @@ export const routes: Routes = [
     children: [
       { path: '', pathMatch: 'full', redirectTo: 'dashboard' },
       { path: 'dashboard', loadComponent: () => import('./operator/operator-dashboard.page').then((module) => module.OperatorDashboardPage) },
+      { path: 'fleet/tracking', data: { title: 'Fleet tracking' }, loadComponent: () => import('./tracking/tracking.page').then(module => module.TrackingPage) },
+      { path: 'compliance', data: { title: 'Fleet compliance' }, loadComponent: () => import('./tracking/tracking.page').then(module => module.TrackingPage) },
+      { path: 'transits/summary', data: { title: 'Transit summary' }, loadComponent: () => import('./tracking/tracking.page').then(module => module.TrackingPage) },
       { path: 'fleet', loadComponent: () => import('./operator/fleet-hub.page').then((module) => module.FleetHubPage) },
       { path: 'fleet/jeepneys', loadComponent: () => import('./operator/jeepneys.page').then((module) => module.JeepneysPage) },
       { path: 'fleet/jeepneys/new', loadComponent: () => import('./operator/jeepney-form.page').then((module) => module.JeepneyFormPage) },
@@ -84,6 +88,10 @@ export const routes: Routes = [
   },
   ...(environment.enableFoundationPreview
     ? [
+        {
+          path: 'foundation/tracking',
+          loadComponent: () => import('./tracking/tracking-preview.page').then(module => module.TrackingPreviewPage),
+        },
         {
           path: 'foundation/:view',
           loadComponent: () => import('./foundation-preview.page').then((module) => module.FoundationPreviewPage),

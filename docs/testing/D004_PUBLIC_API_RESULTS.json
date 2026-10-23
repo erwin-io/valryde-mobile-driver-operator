@@ -1,0 +1,44 @@
+{
+  "directive": "RAPID_DELIVERY_004 / D-SEC-001",
+  "baseUrl": "http://127.0.0.1:3000/api",
+  "observedAt": "2026-10-23T03:10:46.808Z",
+  "backendRevision": "810c8a1 (Tech Lead supplied; runtime not attested)",
+  "database": "valryde_ui_dev (Tech Lead supplied; runtime binding not attested)",
+  "mutationStatus": "MUTATION_ATTESTATION_PENDING",
+  "results": [
+    {
+      "name": "Public API/database health",
+      "result": "PASSED"
+    },
+    {
+      "name": "Public fixture route catalogue with pagination",
+      "result": "PASSED"
+    },
+    {
+      "name": "Second public route page",
+      "result": "PASSED"
+    },
+    {
+      "name": "Published route identity/status/color",
+      "result": "PASSED"
+    },
+    {
+      "name": "Published official direction geometry",
+      "result": "PASSED"
+    },
+    {
+      "name": "Unauthenticated assignment denied",
+      "result": "PASSED"
+    }
+  ],
+  "notRun": [
+    "business writes",
+    "fixture reset",
+    "refresh rotation",
+    "logout",
+    "dynamic assignment revocation",
+    "Admin lifecycle transitions",
+    "physical GPS/device"
+  ],
+  "authentication": "NOT_RUN_PUBLIC_ONLY"
+}
