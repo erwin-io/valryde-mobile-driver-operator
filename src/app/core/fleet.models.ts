@@ -153,7 +153,18 @@ export interface DriverAssignment {
 }
 
 /** Exactly one target; the server rejects both or neither (400). */
-export type RouteAssignmentTarget = { jeepneyId: string } | { groupId: string };
+export type RouteAssignmentTarget = { jeepneyId: string; groupId?: never } | { groupId: string; jeepneyId?: never };
+
+/** Merged transit contract; the unselected target and an open activeTo are null. */
+export interface RouteAssignment {
+  id: string;
+  jeepneyId: string | null;
+  groupId: string | null;
+  routeDirectionId: string;
+  assignedByUserId: string;
+  activeFrom: string;
+  activeTo: string | null;
+}
 
 /** Merged G2 privacy-minimized membership union. No email/userId/provider fields. */
 export type FleetGroupMember = {

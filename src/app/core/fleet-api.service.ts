@@ -17,6 +17,7 @@ import type {
   JeepneyCreate,
   JeepneyUpdate,
   Pagination,
+  RouteAssignment,
   RouteAssignmentTarget,
   TransitRoute,
   VehicleApplication,
@@ -144,8 +145,17 @@ export class FleetApiService {
   }
 
   /** OPERATOR only; replaces the target's active assignment (there is no unassign). */
-  assignRoute(routeDirectionId: string, target: RouteAssignmentTarget): Observable<unknown> {
-    return this.http.post(`${this.api}/route-assignments`, { routeDirectionId, ...target });
+  assignRoute(routeDirectionId: string, target: RouteAssignmentTarget): Observable<RouteAssignment> {
+    return this.http.post<{ assignment: RouteAssignment }>(`${this.api}/route-assignments`, { routeDirectionId, ...target })
+      .pipe(map(response => response.assignment));
+  }
+
+  /** G11 authoritative assignment read, scoped by the signed-in Operator. */
+  listRouteAssignments(target: RouteAssignmentTarget): Observable<{ assignments: RouteAssignment[]; pagination: Pagination }> {
+    let params = new HttpParams().set('activeOnly', true).set('page', 1).set('pageSize', 100);
+    if (target.jeepneyId !== undefined) params = params.set('jeepneyId', target.jeepneyId);
+    else params = params.set('groupId', target.groupId);
+    return this.http.get<{ assignments: RouteAssignment[]; pagination: Pagination }>(`${this.api}/route-assignments`, { params });
   }
 
   submitApplication(jeepneyId: string, applicantNotes?: string): Observable<VehicleApplication> {

@@ -136,6 +136,15 @@ describe('SessionService', () => {
     expect(session.expired()).toBe(false);
   });
 
+  it('keeps the session and refresh token after HTTP429 during rotation', async () => {
+    const session = TestBed.inject(SessionService); await signIn(session);
+    api.refresh.mockReturnValue(throwError(() => new HttpErrorResponse({ status: 429, error: { error: { code: 'RATE_LIMITED' } } })));
+    expect(await session.refresh()).toBe('unavailable');
+    expect(session.status()).toBe('authenticated'); expect(session.expired()).toBe(false);
+    api.refresh.mockReturnValue(of(tokens)); await session.refresh();
+    expect(api.refresh).toHaveBeenLastCalledWith(tokens.refreshToken);
+  });
+
   it('drops the active role when the server profile no longer grants it', async () => {
     api.login.mockReturnValue(of(withRoles(['DRIVER', 'OPERATOR'])));
     const session = TestBed.inject(SessionService);

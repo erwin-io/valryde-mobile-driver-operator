@@ -2,9 +2,9 @@
 
 ## Current snapshot
 - Updated at: 2026-10-23 (Asia/Singapore, +08:00).
-- Agent / module: D — Driver/Operator Mobile; Codex takeover directive 002.
+- Agent / module: D — Driver/Operator Mobile; active directive VALRYDE TECH LEAD — AGENT D RAPID DELIVERY 004.
 - Repository: erwin-io/valryde-mobile-driver-operator.
-- Branch / base: feat/codex-d-g2-g4-ui-takeover; origin/main 9f0765dc31cd013ace3d27ae14d3f65b10621784. Verified implementation commit: a46c245b28ee16c607a25075fb4648e03bd335ff; subsequent commit updates documentation only.
+- Branch / base: feat/codex-d-g2-g4-ui-takeover; origin/main 9f0765dc31cd013ace3d27ae14d3f65b10621784. Prior head 9767be8bb344efc1103447fda694af528f224e14; Rapid004 source/test/evidence update follows that preserved history.
 - GitHub PR: [#9](https://github.com/erwin-io/valryde-mobile-driver-operator/pull/9), OPEN / MERGEABLE / CLEAN; GitGuardian SUCCESS at source a46c245; no merge or deployment.
 - Workspace: canonical checkout preserved; isolated .worktrees/codex-ui-takeover.
 - Implementation progress: READY_FOR_REVIEW source candidates for 38/39/40/46/49/50; native/live acceptance pending. Additional progress on 41/45/47/48 and tracking-ready 42–45/51/53/54. No new whole checklist completion asserted.
@@ -13,9 +13,11 @@
 - Execution ownership: owner directive transfers Agent D to Codex; repeated clean Git snapshots show no concurrent writes. Claude desktop/CLI exists but CLI command line does not reference assigned repository; process presence cannot prove session inactivity. Isolated worktree prevents shared-source writes. No processes stopped.
 - Ignored filename-only audit: .angular/, .claude/launch.json, android build/assets/Gradle caches, dist/, node_modules/; no ignored credential contents read or disclosed.
 - Contract discovery: current API main includes G1/G2/G3/G4/G5/G6 source; prior local merge blockers are stale. Reviewed fleet route/domain/service directly on GitHub; no backend checkout edited. Tracking public DTO/realtime still absent in reviewed B report.
-- Verification: final npm run check PASSED: lint; 17 Angular/Vitest files, 247 tests; 5/5 harness safety; production 935.23 kB (existing 700 kB warning, below 1 MB error). Production scan: 71 JS assets, zero fixture markers. Native bridge injected with identical real Capacitor defaults/security options. Final production-asset sync and Android Gradle lintDebug/testDebugUnitTest/assembleDebug PASSED all 232 tasks. APK 5,100,567 bytes; SHA-256 9778DDEB692A6A7D72A02BD5E4EBAE2F2265D9430E9C026EE4E8DD95A0742E27. APK scan: 73 JavaScript assets including Capacitor bridge files, zero fixture markers.
+- Verification: Rapid004 npm run check PASSED: lint; 17 Angular/Vitest files, 258 tests; 5/5 unchanged guard tests; 4/4 new read-runner safety tests; production 935.56 kB (existing 700 kB warning, below 1 MB error). Strict app/spec TypeScript passed after TS2339 fix. Capacitor sync and Android lintDebug/testDebugUnitTest/assembleDebug PASSED, 232 tasks. APK 5,100,567 bytes; SHA-256 5904CE291D8D49EFF46C2A351363F5217DCF838448755E62A32D35DE440BC709. Production 71 JS / APK 73 JS assets: zero fixture markers. Both protected role roots redirect to sign-in in browser smoke; no attached device.
 - Remaining gates: disposable runtime attestation for business integration; approved public tracking contracts; owner physical-device/SMTP/App Links hosting and deployment.
-- Next action: Agent G reviews the submitted branch/PR and decides acceptance/merge; live/device/tracking gates remain.
+- Current objective: IDs 39,40,48,49,50,55 real development integration; fix opaque route-assignment success and HTTP429 presentation; update PR9 without merge/deploy.
+- Current integration prerequisites: shared API reachable on loopback:3000; six public API checks passed. CREDENTIALS_NOT_CONFIGURED: expected runner environment absent; no authenticated acceptance claimed. D-SEC-001 explicitly blocks writes pending runtime/database binding and approved isolation. Existing harness guard unchanged and not bypassed.
+- Next action: Tech Lead review of docs/testing/D004_MUTATION_ATTESTATION_PROPOSAL.md; secure approved credential provisioning for protected reads. No operator terminal management required for completed checks. No six-item acceptance claim.
 
 ## Checklist coverage
 | Checklist ID | Feature / slice | Progress | Evidence (files/tests/PR) | Blocker / next action |
@@ -42,6 +44,10 @@
 ## Latest verification
 | Command / check | Environment | Result | Date/time | Evidence / notes |
 |---|---|---|---|---|
+| Rapid004 final software gates | Strict TypeScript / npm check / Capacitor / Android | PASSED | 2026-10-23 | 258 Angular + 5 guard + 4 runner tests; lint/build/native tasks pass. Exact commands/hash in docs/testing/D004_ACCEPTANCE_RESULTS.md. |
+| Rapid004 live public acceptance | Loopback shared API | 6 PASSED | 2026-10-23 | Absolute PowerShell wrapper with -PublicOnly works from parent cwd; routes/geometry/health/unauthenticated denial. |
+| Rapid004 protected acceptance | Fixture credential prerequisite | CREDENTIALS_NOT_CONFIGURED | 2026-10-23 | Approved runner environment absent; no login attempted, no unrelated credentials accessed. |
+| Rapid004 write acceptance | D-SEC-001 | MUTATION_ATTESTATION_PENDING | 2026-10-23 | Proposed signed supervised runtime/database/fixture attestation, isolated writes and same-transaction binding; not approved or implemented. Guard unchanged. |
 | Rapid delivery final strict TypeScript | App + spec --noEmit | PASSED | 2026-10-23 | Both projects exit 0 on final source. |
 | Final Android gate + APK scan | JDK 21.0.6 / Gradle 8.14.3 / Android SDK | PASSED | 2026-10-23 | 232 tasks (172 executed/60 current), 1m20s; 5,100,567-byte APK; 73 JS assets, zero fixture markers. |
 | Rapid delivery final npm run check | Node 24.19.0 / Angular 22.2.3 / Vitest 5.0.5 | PASSED (bundle warning) | 2026-10-23 | 17 files, 247 Angular tests; 5 harness safety cases; production build 935.23 kB. |
@@ -147,6 +153,20 @@
 - State: OWNER_VERIFICATION_PENDING; not required for documentation recovery.
 
 ## Activity log (newest first; preserve prior entries)
+### 2026-10-23 — Rapid004 autonomous verification and D-SEC-001 safety gate
+- Fixed TS2339 by direct HttpErrorResponse/status narrowing; retained session rejection classification. Added 429 wait messages and refresh-throttle session-retention regression.
+- Typed merged route-assignment success; targeted G11 authoritative readback now precedes current-state success. Mocked tests cover supersession and accepted POST/readback failure. No real route writes executed.
+- Added guarded, redirect-refusing read runner and masked PowerShell wrapper. Verified script only exists in isolated worktree; fixed cwd/report resolution and added -PublicOnly. Absolute invocation from parent directory passed six public API checks. Managed prompt cancelled; environment-presence checks found no approved credential. Authenticated report records CREDENTIALS_NOT_CONFIGURED with zero login attempts.
+- Passed 258 Angular tests, 5 unchanged guard tests, 4 runner tests, strict app/spec types, lint, production build, Capacitor sync and Android lint/unit/assemble. Both protected roots redirect to sign-in in browser; no physical device attached. Latest evidence in docs/testing/D004_ACCEPTANCE_RESULTS.md.
+- Submitted proposed runtime/database/fixture attestation and isolated write-test procedure for review. No guard changes, resets, writes, merges or deployment. Six primary IDs remain candidates with item-specific gaps; absent jeepney DELETE and Operator mapping contracts explicitly escalated. ID41 static route guidance nominated only for Tech Lead alternative acceptance review.
+
+### 2026-10-23 — Rapid Delivery004 recovery, API reachability and contract audit
+- Resumed existing clean PR9 branch at 9767be8; original checkout preserved. Remote mobile main remains9f0765d; PR9 still OPEN with GitGuardian SUCCESS and no reviews/comments. No stash, reset, rebase, merge or backend checkout edit.
+- Live loopback GETs: /api/health200 (database ok), /documentation/json200 (47 paths), /api/transit-routes200 (two public routes), unauthenticated /api/me/assignment401 AUTH_REQUIRED. No authenticated or business-write probe executed.
+- Current OpenAPI confirms exact POST /route-assignments201 assignment fields and G11 GET reconciliation endpoint; no fixture/runtime isolation attestation path. Read merged API fixture and mobile testing policy docs. Policy001 permits development acceptance separately from OWNER_DEVICE_TEST_PENDING; no owner device access required for development review.
+- Fixture docs require exact PostgreSQL database/server/port/schema verification before mutation. This session has no configured fixture credential; approved running-API binding/mutation procedure requested through async user input. The unconditional harness business-write refusal remains intact; no fixture seed/reset/cleanup performed.
+- Proceeding with authorized HTTP429/session-safe presentation and typed route-assignment/reconciliation repairs. Real integration depends on the credential/procedure evidence; no new acceptance claimed.
+
 ### 2026-10-23 — PR9 opened, source head and security checks confirmed
 - Committed/pushed implementation a46c245b28ee16c607a25075fb4648e03bd335ff and opened [PR9](https://github.com/erwin-io/valryde-mobile-driver-operator/pull/9) against main; attached to chat. GitHub confirms OPEN, MERGEABLE, CLEAN and GitGuardian SUCCESS on that source head.
 - Recovery recheck: original checkout clean, isolated worktree clean after source commit, no stashes or local unpublished commits. All historical branches/worktree source preserved. This follow-up changes status/acceptance documentation only; application verification remains tied to unchanged source a46c245.

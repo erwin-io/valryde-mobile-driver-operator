@@ -124,6 +124,7 @@ describe('Operator fleet pages', () => {
     | 'listRoutes'
     | 'getRoute'
     | 'assignRoute'
+    | 'listRouteAssignments'
     | 'listDrivers'
     | 'assignDriver'
     | 'addDriverToGroup'
@@ -182,7 +183,8 @@ describe('Operator fleet pages', () => {
       submitGpsRequest: vi.fn(() => of(gpsRequest())),
       listRoutes: vi.fn(() => of({ routes: [transitRoute], pagination: { page: 1, pageSize: 20, total: 1, totalPages: 1 } })),
       getRoute: vi.fn(() => of(transitRoute)),
-      assignRoute: vi.fn(() => of({})),
+      assignRoute: vi.fn((routeDirectionId, target) => of({ id: 'ra-1', routeDirectionId, jeepneyId: target.jeepneyId ?? null, groupId: target.groupId ?? null, activeTo: null })),
+      listRouteAssignments: vi.fn(target => of({ assignments: [{ id: 'ra-1', routeDirectionId: 'd-1', jeepneyId: target.jeepneyId ?? null, groupId: target.groupId ?? null, activeTo: null }], pagination: { totalPages: 1 } })),
       listDrivers: vi.fn(() =>
         of({ drivers: [driver()], pagination: { page: 1, pageSize: 20, total: 1, totalPages: 1 } }),
       ),
@@ -872,6 +874,23 @@ describe('Operator fleet pages', () => {
       await settle();
       expect(api.assignRoute).toHaveBeenCalledWith('d-1', { groupId: 'g-1' });
       expect(text()).toContain('Group North now uses Cubao → Quiapo.');
+    });
+
+    it('does not claim current success when the assignment was replaced before reconciliation', async () => {
+      api.listRouteAssignments.mockReturnValue(of({ assignments: [], pagination: { totalPages: 0 } }));
+      const { fixture, settle, text } = await render(TransitDetailPage, { routeId: 'r-1' });
+      const page = fixture.componentInstance as unknown as Detail; page.choose(transitRoute.directions[0]);
+      await page.assign('g:g-1'); await settle();
+      expect(text()).toContain('could not be confirmed as current'); expect(text()).not.toContain('now uses');
+    });
+
+    it('preserves an accepted command when the subsequent state read fails', async () => {
+      api.listRouteAssignments.mockReturnValue(rejected(503, 'SERVICE_UNAVAILABLE'));
+      const { fixture, settle, text } = await render(TransitDetailPage, { routeId: 'r-1' });
+      const page = fixture.componentInstance as unknown as Detail; page.choose(transitRoute.directions[0]);
+      await page.assign('j:j-1'); await settle();
+      expect(text()).toContain('Assignment accepted, but its current state could not be checked'); expect(text()).not.toContain('now uses');
+      expect(api.assignRoute).toHaveBeenCalledTimes(1);
     });
 
     it('serializes route assignment while the server mutation is pending', async () => {

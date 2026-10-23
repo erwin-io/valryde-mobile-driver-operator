@@ -157,9 +157,22 @@ describe('FleetApiService', () => {
   });
 
   it('assigns a route direction to exactly one target', () => {
-    api.assignRoute('d-1', { jeepneyId: 'j-1' }).subscribe();
+    let assignment: unknown;
+    api.assignRoute('d-1', { jeepneyId: 'j-1' }).subscribe(value => assignment = value);
     const pending = http.expectOne('/api/route-assignments');
     expect(pending.request.body).toEqual({ routeDirectionId: 'd-1', jeepneyId: 'j-1' });
-    pending.flush({ assignment: {} });
+    const returned = { id: 'ra-1', jeepneyId: 'j-1', groupId: null, routeDirectionId: 'd-1', assignedByUserId: 'u-1', activeFrom: '2026-10-23T00:00:00Z', activeTo: null };
+    pending.flush({ assignment: returned });
+    expect(assignment).toEqual(returned);
+  });
+
+  it.each([{ jeepneyId: 'j/1' }, { groupId: 'g/1' }])('reconciles only the selected route-assignment target %s', target => {
+    api.listRouteAssignments(target).subscribe();
+    const pending = http.expectOne(r => r.url === '/api/route-assignments');
+    expect(pending.request.method).toBe('GET');
+    expect(pending.request.params.get('activeOnly')).toBe('true');
+    expect(pending.request.params.get('pageSize')).toBe('100');
+    expect(pending.request.params.keys().filter(k => k === 'jeepneyId' || k === 'groupId')).toEqual(Object.keys(target));
+    pending.flush({ assignments: [], pagination: {} });
   });
 });

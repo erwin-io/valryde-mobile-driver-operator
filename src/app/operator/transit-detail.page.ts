@@ -149,13 +149,24 @@ export class TransitDetailPage {
     const option = this.options().find((o) => o.value === value);
     if (!direction || !option || this.assigning()) return;
     this.assigning.set(true);
+    let submitted = false;
     try {
-      await firstValueFrom(this.api.assignRoute(direction.id, option.target));
-      this.noticeIsError.set(false);
-      this.notice.set(`${option.label} now uses ${direction.originName} → ${direction.destinationName}.`);
+      const assignment = await firstValueFrom(this.api.assignRoute(direction.id, option.target));
+      submitted = true;
+      // Re-read instead of treating a command response as durable current state.
+      const current = await firstValueFrom(this.api.listRouteAssignments(option.target));
+      const confirmed = assignment && current.assignments.some(row =>
+        row.id === assignment.id && row.routeDirectionId === direction.id && row.activeTo === null &&
+        row.jeepneyId === (option.target.jeepneyId ?? null) && row.groupId === (option.target.groupId ?? null),
+      );
+      this.noticeIsError.set(!confirmed);
+      this.notice.set(confirmed
+        ? `${option.label} now uses ${direction.originName} → ${direction.destinationName}.`
+        : 'The assignment could not be confirmed as current. Refresh before trying again.');
     } catch (error: unknown) {
       this.noticeIsError.set(true);
       this.notice.set(
+        submitted ? 'Assignment accepted, but its current state could not be checked. Refresh before trying again.' :
         apiErrorCode(error) === 'ROUTE_ASSIGNMENT_CONFLICT'
           ? 'This would give a jeepney more than one group route. Assign a route to the jeepney directly instead.'
           : apiErrorMessage(error, 'The route could not be assigned.'),
