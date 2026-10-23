@@ -595,13 +595,24 @@ describe('Operator fleet pages', () => {
     it('shows only the assigned jeepney and its server route summary', async () => {
       api.listJeepneys.mockReturnValue(of([jeepney({ status: 'ACTIVE' }), jeepney({ id: 'j-2', plateNo: 'XYZ 789' })]));
       api.effectiveRoute.mockImplementation((id: string) =>
-        id === 'j-1' ? of({ direction: { originName: 'Cubao', destinationName: 'Quiapo' } }) : rejected(409, 'ROUTE_ASSIGNMENT_CONFLICT'),
+        id === 'j-1' ? of({ direction: transitRoute.directions[0] }) : rejected(409, 'ROUTE_ASSIGNMENT_CONFLICT'),
       );
       const { text } = await render(DriverHomePage);
       expect(text()).toContain('Your assigned jeepney');
       expect(text()).not.toContain('XYZ 789');
       expect(text()).toContain('Cubao → Quiapo');
       expect(api.effectiveRoute).not.toHaveBeenCalledWith('j-2');
+    });
+
+    it.each(['route', 'direction'])('withholds My Jeepney guidance when the published %s is inactive', async inactive => {
+      api.listJeepneys.mockReturnValue(of([jeepney({ status: 'ACTIVE' })]));
+      api.effectiveRoute.mockReturnValue(of({ direction: transitRoute.directions[0] }));
+      api.getRoute.mockReturnValue(of(inactive === 'route'
+        ? { ...transitRoute, status: 'INACTIVE' }
+        : { ...transitRoute, directions: [{ ...transitRoute.directions[0], status: 'INACTIVE' }] }));
+      const { text } = await render(DriverHomePage);
+      expect(text()).toContain('Official route unavailable');
+      expect(text()).not.toContain('Cubao → Quiapo');
     });
 
     it('shows the no-assignment state for a Driver without jeepneys', async () => {

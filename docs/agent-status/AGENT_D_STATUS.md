@@ -1,11 +1,11 @@
 # VALRYDE — Agent D Status
 
 ## Current snapshot
-- Updated at: 2026-10-23 (Asia/Singapore, +08:00).
+- Updated at: 2026-10-23 15:55 (Asia/Singapore, +08:00).
 - Agent / module: D — Driver/Operator Mobile; active directive VALRYDE TECH LEAD — AGENT D RAPID DELIVERY 004.
 - Repository: erwin-io/valryde-mobile-driver-operator.
 - Branch / base: feat/codex-d-g2-g4-ui-takeover; origin/main 9f0765dc31cd013ace3d27ae14d3f65b10621784. Prior head 9767be8bb344efc1103447fda694af528f224e14; Rapid004 source/test/evidence update follows that preserved history.
-- GitHub PR: [#9](https://github.com/erwin-io/valryde-mobile-driver-operator/pull/9), OPEN / MERGEABLE / CLEAN; GitGuardian SUCCESS at source a46c245; no merge or deployment.
+- GitHub PR: [#9](https://github.com/erwin-io/valryde-mobile-driver-operator/pull/9), OPEN / MERGEABLE / CLEAN at latest inspection; no merge or deployment.
 - Workspace: canonical checkout preserved; isolated .worktrees/codex-ui-takeover.
 - Implementation progress: READY_FOR_REVIEW source candidates for 38/39/40/46/49/50; native/live acceptance pending. Additional progress on 41/45/47/48 and tracking-ready 42–45/51/53/54. No new whole checklist completion asserted.
 - Tech Lead review: new work not reviewed; Agent G retains merge authority.
@@ -13,9 +13,9 @@
 - Execution ownership: owner directive transfers Agent D to Codex; repeated clean Git snapshots show no concurrent writes. Claude desktop/CLI exists but CLI command line does not reference assigned repository; process presence cannot prove session inactivity. Isolated worktree prevents shared-source writes. No processes stopped.
 - Ignored filename-only audit: .angular/, .claude/launch.json, android build/assets/Gradle caches, dist/, node_modules/; no ignored credential contents read or disclosed.
 - Contract discovery: current API main includes G1/G2/G3/G4/G5/G6 source; prior local merge blockers are stale. Reviewed fleet route/domain/service directly on GitHub; no backend checkout edited. Tracking public DTO/realtime still absent in reviewed B report.
-- Verification: Rapid004 npm run check PASSED: lint; 17 Angular/Vitest files, 258 tests; 5/5 unchanged guard tests; 4/4 new read-runner safety tests; production 935.56 kB (existing 700 kB warning, below 1 MB error). Strict app/spec TypeScript passed after TS2339 fix. Capacitor sync and Android lintDebug/testDebugUnitTest/assembleDebug PASSED, 232 tasks. APK 5,100,567 bytes; SHA-256 5904CE291D8D49EFF46C2A351363F5217DCF838448755E62A32D35DE440BC709. Production 71 JS / APK 73 JS assets: zero fixture markers. Both protected role roots redirect to sign-in in browser smoke; no attached device.
+- Verification: Latest `npm run check` PASSED: lint; 17 Angular/Vitest files, 261 tests; 5/5 unchanged guard tests; 4/4 read-runner safety tests; production 935.56 kB (existing 700 kB warning, below 1 MB error). Strict app/spec TypeScript passed. Earlier Capacitor sync and Android lintDebug/testDebugUnitTest/assembleDebug PASSED, 232 tasks; no new native build after this TypeScript-only correction. Earlier APK 5,100,567 bytes; SHA-256 5904CE291D8D49EFF46C2A351363F5217DCF838448755E62A32D35DE440BC709. Previous production fixture scans and browser guard smoke passed; no attached device.
 - Remaining gates: disposable runtime attestation for business integration; approved public tracking contracts; owner physical-device/SMTP/App Links hosting and deployment.
-- Current objective: IDs 39,40,48,49,50,55 real development integration; fix opaque route-assignment success and HTTP429 presentation; update PR9 without merge/deploy.
+- Current objective: Close the ID39/40 review slice in PR9; authenticated fixture reads and device acceptance remain external gates. Isolated write acceptance for IDs 48/49/50 remains a separate approval task.
 - Current integration prerequisites: shared API reachable on loopback:3000; six public API checks passed. CREDENTIALS_NOT_CONFIGURED: expected runner environment absent; no authenticated acceptance claimed. D-SEC-001 explicitly blocks writes pending runtime/database binding and approved isolation. Existing harness guard unchanged and not bypassed.
 - Next action: Tech Lead review of docs/testing/D004_MUTATION_ATTESTATION_PROPOSAL.md; secure approved credential provisioning for protected reads. No operator terminal management required for completed checks. No six-item acceptance claim.
 
@@ -44,6 +44,7 @@
 ## Latest verification
 | Command / check | Environment | Result | Date/time | Evidence / notes |
 |---|---|---|---|---|
+| ID40 published-route correction: `npm run check`, app/spec `tsc --noEmit`, `git diff --check` | Node 24 / Angular 22 | PASSED | 2026-10-23 15:55 +08:00 | 261 Angular tests, 5 guard tests, 4 read-runner tests; production build with existing bundle warning. |
 | Rapid004 final software gates | Strict TypeScript / npm check / Capacitor / Android | PASSED | 2026-10-23 | 258 Angular + 5 guard + 4 runner tests; lint/build/native tasks pass. Exact commands/hash in docs/testing/D004_ACCEPTANCE_RESULTS.md. |
 | Rapid004 live public acceptance | Loopback shared API | 6 PASSED | 2026-10-23 | Absolute PowerShell wrapper with -PublicOnly works from parent cwd; routes/geometry/health/unauthenticated denial. |
 | Rapid004 protected acceptance | Fixture credential prerequisite | CREDENTIALS_NOT_CONFIGURED | 2026-10-23 | Approved runner environment absent; no login attempted, no unrelated credentials accessed. |
@@ -153,6 +154,10 @@
 - State: OWNER_VERIFICATION_PENDING; not required for documentation recovery.
 
 ## Activity log (newest first; preserve prior entries)
+### 2026-10-23 — ID40 published-route summary correction
+- My Jeepney now checks the official route and published direction statuses before showing origin/destination guidance, matching the existing assigned-route map. Added two focused inactive-status cases. No API contract, authorization, GPS or mutation behavior changed.
+- `npm run check` passed: lint, 17 Angular files / 261 tests, five mutation-guard tests, four read-runner tests and production build (935.56 kB initial, existing 700 kB warning). Strict app/spec TypeScript and `git diff --check` passed. Authenticated fixture reads and physical-device acceptance were not rerun or claimed; credential and device gates remain.
+
 ### 2026-10-23 — Rapid004 autonomous verification and D-SEC-001 safety gate
 - Fixed TS2339 by direct HttpErrorResponse/status narrowing; retained session rejection classification. Added 429 wait messages and refresh-throttle session-retention regression.
 - Typed merged route-assignment success; targeted G11 authoritative readback now precedes current-state success. Mocked tests cover supersession and accepted POST/readback failure. No real route writes executed.

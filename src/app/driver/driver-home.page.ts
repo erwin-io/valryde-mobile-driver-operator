@@ -140,8 +140,14 @@ export class DriverHomePage implements OnInit, OnDestroy {
 
   private async routeSummary(jeepneyId: string): Promise<string> {
     try {
-      const route = await firstValueFrom(this.api.effectiveRoute(jeepneyId));
-      return route ? `${route.direction.originName} → ${route.direction.destinationName}` : 'No route assigned';
+      const effective = await firstValueFrom(this.api.effectiveRoute(jeepneyId));
+      if (!effective) return 'No route assigned';
+      if (effective.direction.status !== 'ACTIVE') return 'Official route unavailable';
+      const route = await firstValueFrom(this.api.getRoute(effective.direction.routeId));
+      const publishedDirection = route.directions.find(({ id }) => id === effective.direction.id);
+      return route.status === 'ACTIVE' && publishedDirection?.status === 'ACTIVE'
+        ? `${publishedDirection.originName} → ${publishedDirection.destinationName}`
+        : 'Official route unavailable';
     } catch (error: unknown) {
       if (['FORBIDDEN', 'NOT_FOUND', 'AUTH_REQUIRED', 'SESSION_REVOKED'].includes(apiErrorCode(error) ?? '')) throw error;
       return apiErrorCode(error) === 'ROUTE_ASSIGNMENT_CONFLICT' ? 'Route unavailable — contact your operator' : 'Route not available';
