@@ -55,6 +55,8 @@ import { StatePanelComponent } from '../shared/state-panel.component';
       <main class="page-stack narrow">
         @if (loading()) {
           <p role="status"><ion-spinner name="crescent" /> Loading group…</p>
+        } @else if (loadError()) {
+          <app-state-panel panelId="group-load-error" icon="people-outline" title="Group unavailable" [message]="loadError()!" actionLabel="Try again" (action)="loadExisting(groupId!)" />
         } @else if (missing()) {
           <app-state-panel panelId="group-missing" icon="people-outline" title="Group not available" message="It does not exist or is not one of your groups." />
         } @else {
@@ -93,6 +95,8 @@ export class GroupFormPage {
   protected readonly backHref = this.groupId ? `/operator/fleet/groups/${this.groupId}` : '/operator/fleet/groups';
   protected readonly loading = signal(this.groupId !== null);
   protected readonly missing = signal(false);
+  protected readonly loadError = signal<string | null>(null);
+  protected readonly existingLoaded = signal(false);
   protected readonly saving = signal(false);
   protected readonly failure = signal<string | null>(null);
   protected readonly form = new FormGroup({
@@ -105,20 +109,26 @@ export class GroupFormPage {
     if (this.groupId) void this.loadExisting(this.groupId);
   }
 
-  private async loadExisting(id: string): Promise<void> {
+  protected async loadExisting(id: string): Promise<void> {
+    this.loading.set(true);
+    this.loadError.set(null);
+    this.existingLoaded.set(false);
     try {
       const group = (await firstValueFrom(this.api.listGroups())).find((g) => g.id === id) ?? null;
       this.missing.set(group === null);
-      if (group) this.form.setValue({ name: group.name, description: group.description ?? '', status: group.status });
+      if (group) {
+        this.form.setValue({ name: group.name, description: group.description ?? '', status: group.status });
+        this.existingLoaded.set(true);
+      }
     } catch (error: unknown) {
-      this.failure.set(apiErrorMessage(error, 'This group could not be loaded.'));
+      this.loadError.set(apiErrorMessage(error, 'This group could not be loaded.'));
     } finally {
       this.loading.set(false);
     }
   }
 
   protected async save(): Promise<void> {
-    if (this.form.invalid || this.saving()) {
+    if (this.loading() || this.loadError() || (this.groupId && !this.existingLoaded()) || this.form.invalid || this.saving()) {
       this.form.markAllAsTouched();
       return;
     }

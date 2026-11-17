@@ -56,6 +56,8 @@ const HEX = /^#[0-9A-Fa-f]{6}$/;
       <main class="page-stack narrow">
         @if (loading()) {
           <p role="status"><ion-spinner name="crescent" /> Loading jeepney…</p>
+        } @else if (loadError()) {
+          <app-state-panel panelId="jeepney-load-error" icon="bus-outline" title="Jeepney unavailable" [message]="loadError()!" actionLabel="Try again" (action)="loadExisting(jeepneyId!)" />
         } @else if (missing()) {
           <app-state-panel panelId="jeepney-missing" icon="bus-outline" title="Jeepney not available" message="It does not exist or is not part of your fleet." />
         } @else {
@@ -113,6 +115,7 @@ export class JeepneyFormPage {
   protected readonly backHref = this.jeepneyId ? `/operator/fleet/jeepneys/${this.jeepneyId}` : '/operator/fleet/jeepneys';
   protected readonly loading = signal(this.jeepneyId !== null);
   protected readonly missing = signal(false);
+  protected readonly loadError = signal<string | null>(null);
   protected readonly existing = signal<Jeepney | null>(null);
   protected readonly saving = signal(false);
   protected readonly failure = signal<string | null>(null);
@@ -129,7 +132,10 @@ export class JeepneyFormPage {
     }
   }
 
-  private async loadExisting(id: string): Promise<void> {
+  protected async loadExisting(id: string): Promise<void> {
+    this.loading.set(true);
+    this.loadError.set(null);
+    this.existing.set(null);
     try {
       // No detail endpoint: take it from the Operator-scoped list, so another fleet's ID is simply absent.
       const jeepney = (await firstValueFrom(this.api.listJeepneys())).find((j) => j.id === id) ?? null;
@@ -137,14 +143,14 @@ export class JeepneyFormPage {
       this.missing.set(jeepney === null);
       if (jeepney) this.form.patchValue({ colorHex: jeepney.colorHex, description: jeepney.description ?? '' });
     } catch (error: unknown) {
-      this.failure.set(apiErrorMessage(error, 'This jeepney could not be loaded.'));
+      this.loadError.set(apiErrorMessage(error, 'This jeepney could not be loaded.'));
     } finally {
       this.loading.set(false);
     }
   }
 
   protected async save(): Promise<void> {
-    if (this.form.invalid || this.saving()) {
+    if (this.loading() || this.loadError() || (this.jeepneyId && !this.existing()) || this.form.invalid || this.saving()) {
       this.form.markAllAsTouched();
       return;
     }

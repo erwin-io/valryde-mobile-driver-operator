@@ -340,6 +340,17 @@ describe('Operator fleet pages', () => {
       await submit();
       expect(text()).toContain('Jeepney does not belong to this operator');
     });
+
+    it('does not expose a blank edit form or submit when the owned jeepney read fails', async () => {
+      api.listJeepneys.mockReturnValue(rejected(503, 'SERVICE_UNAVAILABLE'));
+      const { fixture, settle, text } = await render(JeepneyFormPage, { id: 'j-1' });
+      const page = fixture.componentInstance as unknown as { save(): Promise<void>; loadExisting(id: string): Promise<void> };
+      expect(text()).toContain('Jeepney unavailable');
+      await page.save(); expect(api.updateJeepney).not.toHaveBeenCalled();
+      api.listJeepneys.mockReturnValue(of([jeepney()]));
+      await page.loadExisting('j-1'); await settle();
+      expect(text()).toContain('ABC 123');
+    });
   });
 
   describe('JeepneyDetailPage (O05/O07)', () => {
@@ -426,11 +437,26 @@ describe('Operator fleet pages', () => {
       page.pendingDriver.set(driver());
       fixture.detectChanges();
       expect(text()).toContain('replaces any active assignment held by this Driver or jeepney');
+      api.listDrivers.mockReturnValue(of({ drivers: [driver({ activeJeepneyId: 'j-1' })], pagination: { page: 1, pageSize: 100, total: 1, totalPages: 1 } }));
       await page.assignDriver();
       await settle();
       expect(api.assignDriver).toHaveBeenCalledWith('j-1', 'd-1');
       expect(api.listDrivers).toHaveBeenLastCalledWith({ page: 1, pageSize: 100 });
-      expect(text()).toContain('Assignment accepted. Driver directory refreshed.');
+      expect(text()).toContain('Driver assigned. Assignment state refreshed.');
+    });
+
+    it('does not claim the target Driver is current after a concurrent reassignment', async () => {
+      const { fixture, settle, text } = await render(JeepneyDetailPage, { id: 'j-1' });
+      const page = fixture.componentInstance as unknown as {
+        pendingDriver: { set(value: DriverDirectoryEntry | null): void };
+        assignDriver(): Promise<void>;
+      };
+      page.pendingDriver.set(driver());
+      api.listDrivers.mockReturnValue(of({ drivers: [driver(), driver({ driverId: 'd-2', displayName: 'New Driver', activeJeepneyId: 'j-1' })], pagination: { page: 1, pageSize: 100, total: 2, totalPages: 1 } }));
+      await page.assignDriver(); await settle();
+      expect(text()).toContain('this Driver is no longer the current assignment');
+      expect(text()).toContain('New Driver');
+      expect(text()).not.toContain('Driver assigned. Assignment state refreshed.');
     });
 
     it.each([
@@ -498,6 +524,17 @@ describe('Operator fleet pages', () => {
       expect((await render(GroupDetailPage, { id: 'other-group' })).text()).toContain('Group not available');
     });
 
+    it('blocks group edits until the scoped group read succeeds', async () => {
+      api.listGroups.mockReturnValue(rejected(503, 'SERVICE_UNAVAILABLE'));
+      const { fixture, settle, text } = await render(GroupFormPage, { id: 'g-1' });
+      const page = fixture.componentInstance as unknown as { save(): Promise<void>; loadExisting(id: string): Promise<void> };
+      expect(text()).toContain('Group unavailable');
+      await page.save(); expect(api.updateGroup).not.toHaveBeenCalled();
+      api.listGroups.mockReturnValue(of([group()]));
+      await page.loadExisting('g-1'); await settle();
+      expect(text()).toContain('Group name');
+    });
+
     it('renders authoritative membership including disabled Drivers', async () => {
       api.listGroupMembers.mockReturnValue(of({ members: [{ memberType: 'DRIVER', driverId: 'd-1', displayName: 'Juan Dela Cruz', status: 'DISABLED', activeJeepneyId: null, joinedAt: '' }], pagination: { page: 1, total: 1, totalPages: 1 } }));
       api.listDrivers.mockReturnValue(
@@ -511,6 +548,11 @@ describe('Operator fleet pages', () => {
     });
 
     it('adds a Driver and jeepney with their business IDs', async () => {
+      const driverMember = { memberType: 'DRIVER', driverId: 'd-1', displayName: 'Juan Dela Cruz', status: 'ACTIVE', activeJeepneyId: null, joinedAt: '' };
+      const jeepneyMember = { memberType: 'JEEPNEY', jeepneyId: 'j-1', plateNo: 'ABC 123', colorHex: '#1E88E5', description: null, status: 'DRAFT', activeDriverId: null, joinedAt: '' };
+      api.listGroupMembers.mockReturnValueOnce(of({ members: [], pagination: { page: 1, totalPages: 1 } }))
+        .mockReturnValueOnce(of({ members: [driverMember], pagination: { page: 1, totalPages: 1 } }))
+        .mockReturnValueOnce(of({ members: [driverMember, jeepneyMember], pagination: { page: 1, totalPages: 1 } }));
       const { fixture, settle, text } = await render(GroupDetailPage, { id: 'g-1' });
       const page = fixture.componentInstance as unknown as {
         addDriver(value: DriverDirectoryEntry): Promise<void>;
@@ -524,6 +566,41 @@ describe('Operator fleet pages', () => {
       await settle();
       expect(api.addJeepneyToGroup).toHaveBeenCalledWith('g-1', 'j-1');
       expect(text()).toContain('was added. Membership refreshed.');
+    });
+
+    it('waits for every membership page before offering additions and confirms a new member beyond page one', async () => {
+      const driverMember = { memberType: 'DRIVER', driverId: 'd-1', displayName: 'Juan Dela Cruz', status: 'ACTIVE', activeJeepneyId: null, joinedAt: '' };
+      const otherMember = { memberType: 'JEEPNEY', jeepneyId: 'j-2', plateNo: 'XYZ 789', colorHex: '#1E88E5', description: null, status: 'ACTIVE', activeDriverId: null, joinedAt: '' };
+      api.listGroupMembers.mockReturnValueOnce(of({ members: [otherMember], pagination: { page: 1, totalPages: 2 } }))
+        .mockReturnValueOnce(of({ members: [], pagination: { page: 2, totalPages: 2 } }))
+        .mockReturnValueOnce(of({ members: [otherMember], pagination: { page: 1, totalPages: 2 } }))
+        .mockReturnValueOnce(of({ members: [driverMember], pagination: { page: 2, totalPages: 2 } }));
+      const { fixture, settle, text } = await render(GroupDetailPage, { id: 'g-1' });
+      const page = fixture.componentInstance as unknown as {
+        loadMembership(reset?: boolean): Promise<boolean>;
+        addDriver(value: DriverDirectoryEntry): Promise<void>;
+      };
+      expect(text()).toContain('Load all member pages before changing membership.');
+      await page.addDriver(driver());
+      expect(api.addDriverToGroup).not.toHaveBeenCalled();
+      await page.loadMembership(false); await settle();
+      await page.addDriver(driver()); await settle();
+      expect(api.addDriverToGroup).toHaveBeenCalledWith('g-1', 'd-1');
+      expect(text()).toContain('was added. Membership refreshed.');
+      expect(api.listGroupMembers).toHaveBeenCalledWith('g-1', 2);
+    });
+
+    it('hides add controls while authoritative membership refresh is pending', async () => {
+      const { fixture, settle, text } = await render(GroupDetailPage, { id: 'g-1' });
+      const pending = new Subject<unknown>();
+      api.listGroupMembers.mockReturnValue(pending);
+      await (fixture.componentInstance as unknown as { load(): Promise<void> }).load(); await settle();
+      expect(text()).toContain('Load all member pages before changing membership.');
+      const addButtons = () => [...(fixture.nativeElement as HTMLElement).querySelectorAll('ion-button')].filter(button => button.textContent?.trim() === 'Add');
+      expect(addButtons()).toHaveLength(0);
+      pending.next({ members: [], pagination: { page: 1, totalPages: 1 } }); pending.complete();
+      await settle();
+      expect(addButtons().length).toBeGreaterThan(0);
     });
 
     it('serializes group additions while a mutation is pending', async () => {
@@ -731,6 +808,18 @@ describe('Operator fleet pages', () => {
       expect(text()).toContain('Driver unassigned. Assignment state refreshed.'); expect(text()).not.toContain('Currently assigned');
     });
 
+    it('reports a new Driver after unassignment without claiming the jeepney is unassigned', async () => {
+      api.listDrivers.mockReturnValue(of({ drivers: [driver({ activeJeepneyId: 'j-1' })], pagination: { totalPages: 1 } }));
+      const { fixture, settle, text } = await render(JeepneyDetailPage, { id: 'j-1' });
+      const page = fixture.componentInstance as unknown as VehiclePage;
+      page.confirmUnassign.set(true);
+      api.listDrivers.mockReturnValue(of({ drivers: [driver({ driverId: 'd-2', displayName: 'Replacement Driver', activeJeepneyId: 'j-1' })], pagination: { totalPages: 1 } }));
+      await page.unassignDriver(); await settle();
+      expect(text()).toContain('another Driver is now assigned');
+      expect(text()).toContain('Replacement Driver');
+      expect(text()).not.toContain('Driver unassigned. Assignment state refreshed.');
+    });
+
     it('finds an assigned disabled Driver beyond the first directory page', async () => {
       api.listDrivers.mockReturnValueOnce(of({ drivers: [driver()], pagination: { totalPages: 2 } })).mockReturnValueOnce(of({ drivers: [driver({ driverId: 'disabled', displayName: 'Assigned Disabled Driver', status: 'DISABLED', activeJeepneyId: 'j-1' })], pagination: { totalPages: 2 } }));
       const { text } = await render(JeepneyDetailPage, { id: 'j-1' });
@@ -857,6 +946,19 @@ describe('Operator fleet pages', () => {
       expect(text()).toContain('ABC 123');
       expect(text()).toContain('Installation scheduled');
       expect(text()).toContain('accept route addition or change requests yet');
+    });
+
+    it('filters GPS requests by the server status and shows the server update time', async () => {
+      api.listGpsRequests.mockReturnValue(of([
+        gpsRequest({ id: 'gps-pending', status: 'PENDING', updatedAt: '2026-10-22T01:00:00Z' }),
+        gpsRequest({ id: 'gps-rejected', status: 'REJECTED', updatedAt: '2026-10-23T08:30:00Z' }),
+      ]));
+      const { fixture, settle, text } = await render(RequestsPage);
+      const page = fixture.componentInstance as unknown as { gpsFilter: { set(value: string): void } };
+      expect(text()).toContain('Updated 2026-10-23 08:30 UTC');
+      page.gpsFilter.set('REJECTED'); fixture.detectChanges(); await settle();
+      expect(text()).toContain('Rejected');
+      expect(text()).not.toContain('Updated 2026-10-22 01:00 UTC');
     });
   });
 

@@ -356,7 +356,11 @@ export class JeepneyDetailPage implements OnDestroy {
       if (this.destroyed) return;
       this.drivers.set([]);
       await this.loadDrivers();
-      this.assignmentMessage.set(this.driversError() ? 'Unassignment accepted. Refresh the directory to confirm the current state.' : 'Driver unassigned. Assignment state refreshed.');
+      this.assignmentMessage.set(this.driversError()
+        ? 'Unassignment accepted. Refresh the directory to confirm the current state.'
+        : this.currentDriver()
+          ? 'Unassignment accepted, but another Driver is now assigned to this jeepney.'
+          : 'Driver unassigned. Assignment state refreshed.');
     } catch (error: unknown) {
       if (this.destroyed) return;
       this.assignmentError.set(apiErrorMessage(error, 'The Driver could not be unassigned.'));
@@ -374,7 +378,11 @@ export class JeepneyDetailPage implements OnDestroy {
       await firstValueFrom(this.api.assignDriver(this.jeepneyId, driver.driverId));
       this.pendingDriver.set(null);
       await this.loadDrivers();
-      this.assignmentMessage.set(this.driversError() ? 'Assignment accepted. Refresh the directory to confirm the current state.' : 'Assignment accepted. Driver directory refreshed.');
+      this.assignmentMessage.set(this.driversError()
+        ? 'Assignment accepted. Refresh the directory to confirm the current state.'
+        : this.currentDriver()?.driverId === driver.driverId
+          ? 'Driver assigned. Assignment state refreshed.'
+          : 'Assignment accepted, but this Driver is no longer the current assignment. Refresh before trying again.');
     } catch (error: unknown) {
       this.assignmentError.set(apiErrorMessage(error, 'The Driver could not be assigned.'));
     } finally {

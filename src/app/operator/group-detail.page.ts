@@ -103,7 +103,9 @@ import { StatusPillComponent } from '../shared/status-pill.component';
                 @if (page.page < page.totalPages) { <ion-button fill="outline" [disabled]="membershipLoading() || addingId() !== null" (click)="loadMembership(false)">Load more members</ion-button> }
               }
             }
-            @if (membersLoading()) {
+            @if (!membershipComplete()) {
+              @if (!membershipError()) { <p class="supporting-text">Load all member pages before changing membership.</p> }
+            } @else if (membersLoading()) {
               <p role="status"><ion-spinner name="crescent" /> Loading available members…</p>
             } @else if (membersError()) {
               <app-state-panel panelId="group-members-error" icon="lock-closed-outline" title="Member controls unavailable" [message]="membersError()!" actionLabel="Try again" (action)="loadMemberOptions()" />
@@ -153,6 +155,10 @@ export class GroupDetailPage implements OnDestroy {
   private destroyed = false;
   protected readonly members = signal<FleetGroupMember[]>([]);
   protected readonly memberPagination = signal<Pagination | null>(null);
+  protected readonly membershipComplete = computed(() => {
+    const page = this.memberPagination();
+    return page !== null && page.page >= page.totalPages;
+  });
   protected readonly membershipLoading = signal(false);
   protected readonly membershipError = signal<string | null>(null);
   protected readonly pendingRemoval = signal<FleetGroupMember | null>(null);
@@ -173,6 +179,7 @@ export class GroupDetailPage implements OnDestroy {
   protected readonly availableDrivers = computed(() =>
     this.drivers().filter(
       (driver) =>
+        !this.members().some(member => member.memberType === 'DRIVER' && member.driverId === driver.driverId) &&
         !driver.groupIds.includes(this.groupId) &&
         driver.status === 'ACTIVE' &&
         driver.userStatus === 'ACTIVE' &&
@@ -238,8 +245,13 @@ export class GroupDetailPage implements OnDestroy {
       if (this.destroyed) return;
       this.pendingRemoval.set(null);
       const reconciled = await this.loadMembership();
+      const stillPresent = reconciled ? await this.confirmMember(this.memberKey(member)) : null;
       await this.loadMemberOptions();
-      if (!this.destroyed) this.memberMessage.set(reconciled ? 'Member removed. Membership refreshed.' : 'Removal accepted. Refresh membership to confirm the current state.');
+      if (!this.destroyed) this.memberMessage.set(stillPresent === false
+        ? 'Member removed. Membership refreshed.'
+        : stillPresent === true
+          ? 'Removal accepted, but this member is still present. Refresh before trying again.'
+          : 'Removal accepted. Refresh membership to confirm the current state.');
     } catch (error: unknown) {
       if (!this.destroyed) {
         this.pendingRemoval.set(null);
@@ -249,13 +261,22 @@ export class GroupDetailPage implements OnDestroy {
     } finally { if (!this.destroyed) this.addingId.set(null); }
   }
 
+  /** Read every server page before asserting a membership mutation is current. */
+  private async confirmMember(key: string): Promise<boolean | null> {
+    while (!this.membershipComplete()) {
+      if (!await this.loadMembership(false)) return null;
+    }
+    return this.members().some(member => this.memberKey(member) === key);
+  }
+
   protected async load(): Promise<void> {
     const epoch = ++this.loadEpoch;
     this.loading.set(true);
     this.error.set(null);
     this.group.set(null);
     ++this.membersEpoch; ++this.membershipEpoch;
-    this.members.set([]); this.drivers.set([]); this.jeepneys.set([]); this.pendingRemoval.set(null);
+    this.members.set([]); this.memberPagination.set(null); this.membershipError.set(null);
+    this.drivers.set([]); this.jeepneys.set([]); this.pendingRemoval.set(null);
     try {
       const group = (await firstValueFrom(this.api.listGroups())).find((g) => g.id === this.groupId) ?? null;
       if (epoch !== this.loadEpoch) return;
@@ -302,7 +323,7 @@ export class GroupDetailPage implements OnDestroy {
   }
 
   protected async addDriver(driver: DriverDirectoryEntry): Promise<void> {
-    if (this.addingId() || this.destroyed) return;
+    if (this.addingId() || this.destroyed || !this.membershipComplete()) return;
     this.addingId.set(driver.driverId);
     this.memberActionError.set(null);
     this.memberMessage.set(null);
@@ -310,8 +331,13 @@ export class GroupDetailPage implements OnDestroy {
       await firstValueFrom(this.api.addDriverToGroup(this.groupId, driver.driverId));
       if (this.destroyed) return;
       const reconciled = await this.loadMembership();
+      const present = reconciled ? await this.confirmMember(`DRIVER:${driver.driverId}`) : null;
       await this.loadMemberOptions();
-      if (!this.destroyed) this.memberMessage.set(reconciled ? `${driver.displayName} was added. Membership refreshed.` : 'Addition accepted. Refresh membership to confirm the current state.');
+      if (!this.destroyed) this.memberMessage.set(present === true
+        ? `${driver.displayName} was added. Membership refreshed.`
+        : present === false
+          ? 'Addition accepted, but this Driver is not in the current membership. Refresh before trying again.'
+          : 'Addition accepted. Refresh membership to confirm the current state.');
     } catch (error: unknown) {
       this.memberActionError.set(apiErrorMessage(error, 'The Driver could not be added to this group.'));
     } finally {
@@ -320,7 +346,7 @@ export class GroupDetailPage implements OnDestroy {
   }
 
   protected async addJeepney(jeepney: Jeepney): Promise<void> {
-    if (this.addingId() || this.destroyed) return;
+    if (this.addingId() || this.destroyed || !this.membershipComplete()) return;
     this.addingId.set(jeepney.id);
     this.memberActionError.set(null);
     this.memberMessage.set(null);
@@ -328,8 +354,13 @@ export class GroupDetailPage implements OnDestroy {
       await firstValueFrom(this.api.addJeepneyToGroup(this.groupId, jeepney.id));
       if (this.destroyed) return;
       const reconciled = await this.loadMembership();
+      const present = reconciled ? await this.confirmMember(`JEEPNEY:${jeepney.id}`) : null;
       await this.loadMemberOptions();
-      if (!this.destroyed) this.memberMessage.set(reconciled ? `${jeepney.plateNo} was added. Membership refreshed.` : 'Addition accepted. Refresh membership to confirm the current state.');
+      if (!this.destroyed) this.memberMessage.set(present === true
+        ? `${jeepney.plateNo} was added. Membership refreshed.`
+        : present === false
+          ? 'Addition accepted, but this jeepney is not in the current membership. Refresh before trying again.'
+          : 'Addition accepted. Refresh membership to confirm the current state.');
     } catch (error: unknown) {
       this.memberActionError.set(apiErrorMessage(error, 'The jeepney could not be added to this group.'));
     } finally {
